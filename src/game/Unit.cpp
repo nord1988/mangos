@@ -8984,7 +8984,7 @@ void Unit::SetPower(Powers power, uint32 val)
     data << GetPackGUID();
     data << uint8(power);
     data << uint32(val);
-    SendMessageToSet(&data, GetTypeId() == TYPEID_PLAYER ? true : false);
+    SendMessageToSet(&data, true);
 
     // group update
     if(GetTypeId() == TYPEID_PLAYER)

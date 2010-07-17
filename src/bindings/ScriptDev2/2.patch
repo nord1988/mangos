@@ -1,0 +1,41 @@
+From 3c14d0a376d17e50aff9778c50a2c98a3483cc2c Mon Sep 17 00:00:00 2001
+From: /dev/rsa <kris13@bk.ru>
+Date: Sat, 17 Jul 2010 12:31:15 +0400
+Subject: [PATCH] More checks for door in Plague wing (ICC)
+
+---
+ .../icecrown_citadel/instance_icecrown_spire.cpp   |   12 ++++++++++--
+ 1 files changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/northrend/icecrown_citadel/icecrown_citadel/instance_icecrown_spire.cpp b/scripts/northrend/icecrown_citadel/icecrown_citadel/instance_icecrown_spire.cpp
+index d8987bd..f275eec 100644
+--- a/scripts/northrend/icecrown_citadel/icecrown_citadel/instance_icecrown_spire.cpp
++++ b/scripts/northrend/icecrown_citadel/icecrown_citadel/instance_icecrown_spire.cpp
+@@ -451,7 +451,11 @@ static Locations SpawnLoc[]=
+                                       else OpenDoor(m_uiOrangePlagueGUID);
+                 if (uiData == DONE)  {
+                                      OpenDoor(m_uiSDoorOrangeGUID);
+-                                     if (m_auiEncounter[6] == DONE) OpenDoor(m_uiSDoorCollisionGUID);
++                                     if (m_auiEncounter[6] == DONE) 
++                                         {
++                                             OpenDoor(m_uiSDoorCollisionGUID);
++                                             OpenDoor(m_uiGreenPlagueGUID);
++                                         }
+                                      }
+                 break;
+              case TYPE_ROTFACE:
+@@ -460,7 +464,11 @@ static Locations SpawnLoc[]=
+                                       else OpenDoor(m_uiGreenPlagueGUID);
+                 if (uiData == DONE) {
+                                      OpenDoor(m_uiSDoorGreenGUID);
+-                                     if (m_auiEncounter[5] == DONE) OpenDoor(m_uiSDoorCollisionGUID);
++                                     if (m_auiEncounter[5] == DONE) 
++                                         {
++                                             OpenDoor(m_uiSDoorOrangeGUID);
++                                             OpenDoor(m_uiSDoorCollisionGUID);
++                                         }
+                                      }
+                 break;
+              case TYPE_PUTRICIDE:
+-- 
+1.7.0.2

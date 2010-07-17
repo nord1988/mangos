@@ -1,0 +1,24 @@
+From 42f1ee4251e29174567c767ea6ee0e331e1508b9 Mon Sep 17 00:00:00 2001
+From: /dev/rsa <kris13@bk.ru>
+Date: Sat, 17 Jul 2010 12:23:22 +0400
+Subject: [PATCH] Changes from 10202
+
+---
+ scripts/world/item_scripts.cpp |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/scripts/world/item_scripts.cpp b/scripts/world/item_scripts.cpp
+index a262cff..277d80c 100644
+--- a/scripts/world/item_scripts.cpp
++++ b/scripts/world/item_scripts.cpp
+@@ -41,7 +41,7 @@ enum
+ 
+ bool ItemUse_item_arcane_charges(Player* pPlayer, Item* pItem, const SpellCastTargets &pTargets)
+ {
+-    if (pPlayer->isInFlight())
++    if (pPlayer->IsTaxiFlying())
+         return false;
+ 
+     pPlayer->SendEquipError(EQUIP_ERR_NONE, pItem, NULL);
+-- 
+1.7.0.2

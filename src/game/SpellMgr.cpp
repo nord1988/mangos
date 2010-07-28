@@ -300,9 +300,9 @@ bool IsNoStackAuraDueToAura(uint32 spellId_1, uint32 spellId_2)
 
     for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
     {
-        for (int32 j = 0; i < MAX_EFFECT_INDEX; ++j)
+        for (int32 j = 0; j < MAX_EFFECT_INDEX; ++j)
         {
-            if (spellInfo_1->Effect[i] == spellInfo_2->Effect[j] 
+            if (spellInfo_1->Effect[i] == spellInfo_2->Effect[j]
                 && spellInfo_1->EffectApplyAuraName[i] == spellInfo_2->EffectApplyAuraName[j]
                 && spellInfo_1->EffectMiscValue[i] == spellInfo_2->EffectMiscValue[j]
                 && spellInfo_1->EffectItemType[i] == spellInfo_2->EffectItemType[j])
@@ -391,6 +391,9 @@ SpellSpecific GetSpellSpecific(uint32 spellId)
 
             if ((spellInfo->SpellFamilyFlags & UI64LIT(0x1000000)) && spellInfo->EffectApplyAuraName[EFFECT_INDEX_0] == SPELL_AURA_MOD_CONFUSE)
                 return SPELL_MAGE_POLYMORPH;
+
+            if (spellInfo->SpellFamilyFlags & UI64LIT(0x00000400))
+                return SPELL_MAGE_INTELLECT;
 
             break;
         }
@@ -539,6 +542,8 @@ bool IsSingleFromSpellSpecificPerTarget(SpellSpecific spellSpec1,SpellSpecific s
         case SPELL_MAGE_POLYMORPH:
         case SPELL_PRESENCE:
         case SPELL_WELL_FED:
+        case SPELL_BLEED_DEBUFF:
+        case SPELL_MAGE_INTELLECT:
             return spellSpec1==spellSpec2;
         case SPELL_BATTLE_ELIXIR:
             return spellSpec2==SPELL_BATTLE_ELIXIR
@@ -1255,8 +1260,10 @@ void SpellMgr::LoadSpellProcEvents()
 
 struct DoSpellProcItemEnchant
 {
-    DoSpellProcItemEnchant(float _ppm) : ppm(_ppm) {}
-    void operator() (uint32 spell_id) { sSpellMgr.mSpellProcItemEnchantMap[spell_id] = ppm; }
+    DoSpellProcItemEnchant(SpellProcItemEnchantMap& _procMap, float _ppm) : procMap(_procMap), ppm(_ppm) {}
+    void operator() (uint32 spell_id) { procMap[spell_id] = ppm; }
+
+    SpellProcItemEnchantMap& procMap;
     float ppm;
 };
 
@@ -1311,7 +1318,7 @@ void SpellMgr::LoadSpellProcItemEnchant()
         mSpellProcItemEnchantMap[entry] = ppmRate;
 
         // also add to high ranks
-        DoSpellProcItemEnchant worker(ppmRate);
+        DoSpellProcItemEnchant worker(mSpellProcItemEnchantMap, ppmRate);
         doForHighRanks(entry,worker);
 
         ++count;
@@ -1325,8 +1332,10 @@ void SpellMgr::LoadSpellProcItemEnchant()
 
 struct DoSpellBonuses
 {
-    DoSpellBonuses(SpellBonusEntry const& _spellBonus) : spellBonus(_spellBonus) {}
-    void operator() (uint32 spell_id) { sSpellMgr.mSpellBonusMap[spell_id] = spellBonus; }
+    DoSpellBonuses(SpellBonusMap& _spellBonusMap, SpellBonusEntry const& _spellBonus) : spellBonusMap(_spellBonusMap), spellBonus(_spellBonus) {}
+    void operator() (uint32 spell_id) { spellBonusMap[spell_id] = spellBonus; }
+
+    SpellBonusMap& spellBonusMap;
     SpellBonusEntry const& spellBonus;
 };
 
@@ -1468,7 +1477,7 @@ void SpellMgr::LoadSpellBonuses()
         mSpellBonusMap[entry] = sbe;
 
         // also add to high ranks
-        DoSpellBonuses worker(sbe);
+        DoSpellBonuses worker(mSpellBonusMap, sbe);
         doForHighRanks(entry,worker);
 
         ++count;
@@ -1491,7 +1500,7 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellProcEventEntry const * spellP
         return false;
 
     // Always trigger for this
-    if (EventProcFlag & (PROC_FLAG_KILLED | PROC_FLAG_KILL | PROC_FLAG_ON_TRAP_ACTIVATION))
+    if (EventProcFlag & (PROC_FLAG_KILLED | PROC_FLAG_KILL | PROC_FLAG_ON_TRAP_ACTIVATION | PROC_FLAG_ON_DEATH))
         return true;
 
     if (spellProcEvent)     // Exist event data
@@ -1643,16 +1652,16 @@ bool SpellMgr::IsRankSpellDueToSpell(SpellEntry const *spellInfo_1,uint32 spellI
     return GetFirstSpellInChain(spellInfo_1->Id)==GetFirstSpellInChain(spellId_2);
 }
 
-bool SpellMgr::canStackSpellRanks(SpellEntry const *spellInfo)
+bool SpellMgr::canStackSpellRanksInSpellBook(SpellEntry const *spellInfo) const
 {
-    if(IsPassiveSpell(spellInfo))                           // ranked passive spell
+    if (IsPassiveSpell(spellInfo))                          // ranked passive spell
         return false;
-    if(spellInfo->powerType != POWER_MANA && spellInfo->powerType != POWER_HEALTH)
+    if (spellInfo->powerType != POWER_MANA && spellInfo->powerType != POWER_HEALTH)
         return false;
-    if(IsProfessionOrRidingSpell(spellInfo->Id))
+    if (IsProfessionOrRidingSpell(spellInfo->Id))
         return false;
 
-    if(sSpellMgr.IsSkillBonusSpell(spellInfo->Id))
+    if (IsSkillBonusSpell(spellInfo->Id))
         return false;
 
     // All stance spells. if any better way, change it.
@@ -1663,6 +1672,9 @@ bool SpellMgr::canStackSpellRanks(SpellEntry const *spellInfo)
             case SPELLFAMILY_PALADIN:
                 // Paladin aura Spell
                 if (spellInfo->Effect[i]==SPELL_EFFECT_APPLY_AREA_AURA_RAID)
+                    return false;
+                // Seal of Righteousness, 2 version of same rank
+                if ((spellInfo->SpellFamilyFlags & UI64LIT(0x0000000008000000)) && spellInfo->SpellIconID == 25)
                     return false;
                 break;
             case SPELLFAMILY_DRUID:
@@ -2020,6 +2032,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
             if( spellInfo_1->SpellIconID == 2285 && spellInfo_2->SpellIconID == 2285 )
                 return false;
 
+            //Tricks of Trade
+            if( spellInfo_1->SpellIconID == 3413 && spellInfo_2->SpellIconID == 3413 )
+                return false;
+
             // Garrote -> Garrote-Silence (multi-family check)
             if( spellInfo_1->SpellIconID == 498 && spellInfo_2->SpellIconID == 498 && spellInfo_2->SpellVisual[0] == 0 )
                 return false;
@@ -2081,6 +2097,11 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
 
             // Blessing of Sanctuary (multi-family check, some from 16 spell icon spells)
             if (spellInfo_2->Id == 67480 && spellInfo_1->Id == 20911)
+                return false;
+				
+            // Inner Fire and Consecration
+            if(spellInfo_2->SpellFamilyName == SPELLFAMILY_PRIEST)
+                if(spellInfo_1->SpellIconID == 51 && spellInfo_2->SpellIconID == 51)
                 return false;
 
             // Combustion and Fire Protection Aura (multi-family check)
@@ -2269,7 +2290,7 @@ SpellEntry const* SpellMgr::SelectAuraRankForLevel(SpellEntry const* spellInfo, 
     for(int i = 0; i < MAX_EFFECT_INDEX; ++i)
     {
         // for simple aura in check apply to any non caster based targets, in rank search mode to any explicit targets
-        if (((spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AURA && 
+        if (((spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AURA &&
             (IsExplicitPositiveTarget(spellInfo->EffectImplicitTargetA[i]) ||
             IsAreaEffectPossitiveTarget(Targets(spellInfo->EffectImplicitTargetA[i])))) ||
             spellInfo->Effect[i] == SPELL_EFFECT_APPLY_AREA_AURA_PARTY ||
@@ -2929,7 +2950,7 @@ void SpellMgr::LoadPetLevelupSpellMap()
     sLog.outString( ">> Loaded %u pet levelup and default spells for %u families", count, family_count );
 }
 
-bool LoadPetDefaultSpells_helper(CreatureInfo const* cInfo, PetDefaultSpellsEntry& petDefSpells)
+bool SpellMgr::LoadPetDefaultSpells_helper(CreatureInfo const* cInfo, PetDefaultSpellsEntry& petDefSpells)
 {
     // skip empty list;
     bool have_spell = false;
@@ -2945,7 +2966,7 @@ bool LoadPetDefaultSpells_helper(CreatureInfo const* cInfo, PetDefaultSpellsEntr
         return false;
 
     // remove duplicates with levelupSpells if any
-    if(PetLevelupSpellSet const *levelupSpells = cInfo->family ? sSpellMgr.GetPetLevelupSpellList(cInfo->family) : NULL)
+    if(PetLevelupSpellSet const *levelupSpells = cInfo->family ? GetPetLevelupSpellList(cInfo->family) : NULL)
     {
         for(int j = 0; j < MAX_CREATURE_SPELL_DATA_SLOT; ++j)
         {
@@ -3489,8 +3510,7 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spell
         }
         case 69065:                                         // Impaled
         case 69126:                                         // Pungent blight - first aura
-        case 69157:                                         // Pungent blight - second aura
-        case 69195:                                         // Pungent blight
+        case 69152:                                         // Gazeous blight - first aura
         case 72293:                                         // Mark of the Fallen Champion
             return map_id == 631 ? SPELL_CAST_OK : SPELL_FAILED_INCORRECT_AREA;
     }

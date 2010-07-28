@@ -38,6 +38,7 @@
 #include "Creature.h"
 #include "Formulas.h"
 #include "BattleGround.h"
+#include "OutdoorPvPMgr.h"
 #include "CreatureAI.h"
 #include "ScriptCalls.h"
 #include "Util.h"
@@ -334,7 +335,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNoImmediateEffect,                         //281 SPELL_AURA_MOD_HONOR_GAIN             implemented in Player::RewardHonor
     &Aura::HandleAuraIncreaseBaseHealthPercent,             //282 SPELL_AURA_INCREASE_BASE_HEALTH_PERCENT
     &Aura::HandleNoImmediateEffect,                         //283 SPELL_AURA_MOD_HEALING_RECEIVED       implemented in Unit::SpellHealingBonusTaken
-    &Aura::HandleNULL,                                      //284 51 spells
+    &Aura::HandleAuraLinked,                                //284 SPELL_AURA_LINKED
     &Aura::HandleAuraModAttackPowerOfArmor,                 //285 SPELL_AURA_MOD_ATTACK_POWER_OF_ARMOR  implemented in Player::UpdateAttackPowerAndDamage
     &Aura::HandleNoImmediateEffect,                         //286 SPELL_AURA_ABILITY_PERIODIC_CRIT      implemented in Aura::IsCritFromAbilityAura called from Aura::PeriodicTick
     &Aura::HandleNoImmediateEffect,                         //287 SPELL_AURA_DEFLECT_SPELLS             implemented in Unit::MagicSpellHitResult and Unit::MeleeSpellHitResult
@@ -342,7 +343,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleUnused,                                    //289 unused (3.2.2a)
     &Aura::HandleAuraModAllCritChance,                      //290 SPELL_AURA_MOD_ALL_CRIT_CHANCE
     &Aura::HandleNoImmediateEffect,                         //291 SPELL_AURA_MOD_QUEST_XP_PCT           implemented in Player::GiveXP
-    &Aura::HandleNULL,                                      //292 call stabled pet
+    &Aura::HandleAuraOpenStable,                            //292 call stabled pet
     &Aura::HandleNULL,                                      //293 3 spells
     &Aura::HandleNULL,                                      //294 2 spells, possible prevent mana regen
     &Aura::HandleUnused,                                    //295 unused (3.2.2a)
@@ -907,6 +908,49 @@ bool Aura::isAffectedOnSpell(SpellEntry const *spell) const
         return true;
     if (ptr[2] & spell->SpellFamilyFlags2)
         return true;
+    return false;
+}
+
+bool Aura::CanProcFrom(SpellEntry const *spell, uint32 EventProcEx, uint32 procEx, bool active) const
+{
+    // Check EffectClassMask
+    uint32 const *ptr = getAuraSpellClassMask();
+
+    // if no class mask defined - allow proc
+    if (!((uint64*)ptr)[0] && !ptr[2])
+    {
+        if (IsPassiveSpell(GetSpellProto()) && !(EventProcEx & PROC_EX_EX_TRIGGER_ALWAYS))
+        {
+            // Check for extra req (if none) and hit/crit
+            if (EventProcEx == PROC_EX_NONE)
+            {
+                // No extra req, so can trigger only for active (damage/healing present) and hit/crit
+                if((procEx & (PROC_EX_NORMAL_HIT|PROC_EX_CRITICAL_HIT)) && active)
+                    return true;
+                else
+                    return false;
+            }
+            else // Passive spells hits here only if resist/reflect/immune/evade
+            {
+                // Passive spells can`t trigger if need hit (exclude cases when procExtra include non-active flags)
+                if ((EventProcEx & PROC_EX_NORMAL_HIT & procEx) && !active)
+                    return false;
+            }
+        }
+        return true;
+    }
+    else
+    {
+        // Check family name
+        if (spell->SpellFamilyName != GetSpellProto()->SpellFamilyName)
+            return false;
+
+        if (((uint64*)ptr)[0] & spell->SpellFamilyFlags)
+            return true;
+
+        if (ptr[2] & spell->SpellFamilyFlags2)
+            return true;
+    }
     return false;
 }
 
@@ -1816,6 +1860,28 @@ void Aura::TriggerSpell()
 
                 break;
             }
+            // Earthen Power (from Earthbind Totem Passive)
+            case 6474:
+            {
+                Unit *owner = target->GetOwner();
+
+                if (!owner)
+                    break;
+
+                Unit::AuraList const& dummyAuras = owner->GetAurasByType(SPELL_AURA_DUMMY);
+                for(Unit::AuraList::const_iterator itr = dummyAuras.begin(); itr != dummyAuras.end(); ++itr)
+                {
+                    if ((*itr)->GetSpellProto()->SpellIconID == 2289 && (*itr)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_SHAMAN)
+                    {
+                        if (!roll_chance_i((*itr)->GetModifier()->m_amount))
+                            break;
+
+                        target->CastSpell(target, 59566, true, NULL, this);
+                        break;
+						}
+                 }
+                break;
+			}
             case 16191:                                     // Mana Tide
             {
                 triggerTarget->CastCustomSpell(triggerTarget, trigger_spell_id, &m_modifier.m_amount, NULL, NULL, true, NULL, this);
@@ -2167,12 +2233,23 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
 
                 return;
             }
+            case 34477: //Misdirection
+            case 57934: //Tricks of Trade
+            {
+                if(Unit * caster = GetCaster())
+                    caster->SetThreatRedirectionTarget(0, 0);
+                return;
+            }
             case 58600:                                     // Restricted Flight Area
             {
-                // Remove Flight Auras
-                target->CastSpell(target, 58601, true);
-                // Parachute
-                target->CastSpell(target, 45472, true);
+                AreaTableEntry const* area = GetAreaEntryByAreaID(target->GetAreaId());
+
+                // Dalaran restricted flight zone (recheck before apply unmount)
+                if (area && target->GetTypeId() == TYPEID_PLAYER && (area->flags & AREA_FLAG_CANNOT_FLY) &&
+                    ((Player*)target)->IsFreeFlying() && !((Player*)target)->isGameMaster())
+                {
+                    target->CastSpell(target, 58601, true); // Remove Flight Auras (also triggered Parachute (45472))
+                }
                 return;
             }
         }
@@ -2799,6 +2876,7 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
     switch(form)
     {
         case FORM_CAT:
+        case FORM_SHADOW_DANCE:
             PowerType = POWER_ENERGY;
             break;
         case FORM_BEAR:
@@ -2865,7 +2943,8 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
         if(target->m_ShapeShiftFormSpellId)
             target->RemoveAurasDueToSpell(target->m_ShapeShiftFormSpellId, GetHolder());
 
-        target->SetByteValue(UNIT_FIELD_BYTES_2, 3, form);
+        // For Shadow Dance we must apply Stealth form (30) instead of current (13)
+        target->SetByteValue(UNIT_FIELD_BYTES_2, 3, (form == FORM_SHADOW_DANCE) ? uint8(FORM_STEALTH) : form);
 
         if(modelid > 0)
             target->SetDisplayId(modelid);
@@ -2934,6 +3013,10 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
                         target->SetPower(POWER_RAGE, Rage_val);
                     break;
                 }
+                // Shadow Dance - apply stealth mode stand flag
+                case FORM_SHADOW_DANCE:
+                    target->SetStandFlags(UNIT_STAND_FLAGS_CREEP);
+                    break;
                 default:
                     break;
             }
@@ -2973,6 +3056,10 @@ void Aura::HandleAuraModShapeshift(bool apply, bool Real)
             case FORM_MOONKIN:
                 if(Aura* dummy = target->GetDummyAura(37324) )
                     target->CastSpell(target, 37325, true, NULL, dummy);
+                break;
+            // Shadow Dance - remove stealth mode stand flag
+            case FORM_SHADOW_DANCE:
+                target->RemoveStandFlags(UNIT_STAND_FLAGS_CREEP);
                 break;
             default:
                 break;
@@ -3497,7 +3584,7 @@ void Aura::HandleModPossessPet(bool apply, bool Real)
         pet->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
 
         pet->AttackStop();
-        pet->GetMotionMaster()->MoveFollow(caster, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+        pet->GetMotionMaster()->MoveFollow(caster, PET_FOLLOW_DIST, PET_DEFAULT_FOLLOW_ANGLE);
         pet->AddSplineFlag(SPLINEFLAG_WALKMODE);
     }
 }
@@ -4171,13 +4258,18 @@ void Aura::HandleModTaunt(bool apply, bool Real)
 /*********************************************************/
 /***                  MODIFY SPEED                     ***/
 /*********************************************************/
-void Aura::HandleAuraModIncreaseSpeed(bool /*apply*/, bool Real)
+void Aura::HandleAuraModIncreaseSpeed(bool apply, bool Real)
 {
     // all applied/removed only at real aura add/remove
     if(!Real)
         return;
+        
+    Unit *target = GetTarget();
 
     GetTarget()->UpdateSpeed(MOVE_RUN, true);
+    
+    if (apply && GetSpellProto()->Id == 58875)
+        target->CastSpell(target, 58876, true);
 }
 
 void Aura::HandleAuraModIncreaseMountedSpeed(bool apply, bool Real)
@@ -4400,6 +4492,8 @@ void Aura::HandleAuraModEffectImmunity(bool apply, bool /*Real*/)
     {
         if( BattleGround *bg = ((Player*)target)->GetBattleGround() )
             bg->EventPlayerDroppedFlag(((Player*)target));
+        else
+            sOutdoorPvPMgr.HandleDropFlag((Player*)target,GetSpellProto()->Id);
     }
 
     target->ApplySpellImmune(GetId(), IMMUNITY_EFFECT, m_modifier.m_miscvalue, apply);
@@ -4591,6 +4685,18 @@ void Aura::HandlePeriodicEnergize(bool apply, bool Real)
             case 57669:                                     // Replenishment (0.2% from max)
             case 61782:                                     // Infinite Replenishment
                 m_modifier.m_amount = target->GetMaxPower(POWER_MANA) * 2 / 1000;
+                break;
+            default:
+                break;
+        }
+    }
+    if (!apply && !loading)
+    {
+        switch (GetId())
+        {
+            case 5229:                                      // Druid Bear Enrage
+                if (target->HasAura(51185))               // King of the Jungle self Enrage bonus with infinity duration
+                    target->RemoveAurasDueToSpell(51185);
                 break;
             default:
                 break;
@@ -6360,6 +6466,28 @@ void Aura::HandleSchoolAbsorb(bool apply, bool Real)
                 }
             }
         }
+        //Glyph of Guardian Spirit
+        if (spellProto->Id == 47788)
+        {
+            if (!(m_removeMode == AURA_REMOVE_BY_EXPIRE))
+                return;
+            if (target->IsInWorld() && GetStackAmount()>0)
+            {
+                if (caster)
+                    if (caster->HasAura(63231))
+                    {
+                        ((Player*)caster)->RemoveSpellCooldown(47788,true); //server CD set
+                        ((Player*)caster)->AddSpellCooldown(47788,0,time(NULL)+60);
+                        WorldPacket data(SMSG_SPELL_COOLDOWN,8+1+4+4); //client CD set
+                        data << caster->GetGUID();
+                        data << uint8(0x0);
+                        data << spellProto->Id;
+                        data << uint32(60000);
+                        ((Player*)caster)->GetSession()->SendPacket(&data);
+                    }
+                        
+            }
+        }
     }
 }
 
@@ -6412,6 +6540,18 @@ void Aura::PeriodicTick()
                             pCaster->CalculateSpellDamage(target, spellProto, SpellEffectIndex(GetEffIndex() + 1)) :
                             100;
                         if(target->GetHealth() * 100 >= target->GetMaxHealth() * percent )
+                        {
+                            target->RemoveAurasDueToSpell(GetId());
+                            return;
+                        }
+                        break;
+                    }
+                    case 70541:
+                    case 73779:
+                    case 73780:
+                    case 73781:
+                    {
+                        if(target->GetHealth() >= target->GetMaxHealth() * 0.9 )
                         {
                             target->RemoveAurasDueToSpell(GetId());
                             return;
@@ -7559,6 +7699,38 @@ void Aura::HandleAuraControlVehicle(bool apply, bool Real)
     }
 }
 
+void Aura::HandleAuraOpenStable(bool apply, bool Real)
+{
+    if(!Real || GetTarget()->GetTypeId() != TYPEID_PLAYER || !GetTarget()->IsInWorld())
+        return;
+
+    Player* player = (Player*)GetTarget();
+
+    if (apply)
+        player->GetSession()->SendStablePet(player->GetObjectGuid());
+
+    // client auto close stable dialog at !apply aura
+}
+
+void Aura::HandleAuraLinked(bool apply, bool Real)
+{
+    if (!Real)
+        return;
+
+    uint32 linkedSpell = GetSpellProto()->EffectTriggerSpell[m_effIndex];
+    SpellEntry const *spellInfo = sSpellStore.LookupEntry(linkedSpell);
+    if (!spellInfo)
+    {
+        sLog.outError("HandleAuraLinked for spell %u effect %u: triggering unknown spell %u", GetSpellProto()->Id, m_effIndex, linkedSpell);
+        return;
+    }
+
+    if (apply)
+        GetTarget()->CastSpell(GetTarget(), linkedSpell, true, NULL, this);
+    else
+        GetTarget()->RemoveAurasByCasterSpell(linkedSpell, GetCasterGUID());
+}
+
 void Aura::HandleAuraConvertRune(bool apply, bool Real)
 {
     if(!Real)
@@ -8299,6 +8471,13 @@ void SpellAuraHolder::HandleSpellSpecificBoosts(bool apply)
                     return;
                 break;
             }
+            else if (m_spellProto->SpellFamilyFlags & 0x20LL && GetSpellProto()->SpellVisual[0] == 13)
+            {
+                // Glyph of Frostbolt
+                if (Unit * caster = GetCaster())
+                    if (caster->HasAura(56370))
+                        m_target->RemoveAurasByCasterSpell(GetId(), caster->GetGUID());
+            }
 
             switch(GetId())
             {
@@ -8877,18 +9056,24 @@ void SpellAuraHolder::RefreshHolder()
     SendAuraUpdate(false);
 }
 
-bool SpellAuraHolder::HasAuraAndMechanicEffect(uint32 mechanic) const
+bool SpellAuraHolder::HasMechanic(uint32 mechanic) const
 {
+    if (mechanic == m_spellProto->Mechanic)
+        return true;
+
     for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
         if (m_auras[i] && m_spellProto->EffectMechanic[i] == mechanic)
             return true;
     return false;
 }
 
-bool SpellAuraHolder::HasAuraAndMechanicEffectMask(uint32 mechanicMask) const
+bool SpellAuraHolder::HasMechanicMask(uint32 mechanicMask) const
 {
+    if (mechanicMask & (1 << (m_spellProto->Mechanic - 1)))
+        return true;
+
     for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
-        if (m_auras[i] && m_spellProto->EffectMechanic[i] & mechanicMask)
+        if (m_auras[i] && m_spellProto->EffectMechanic[i] && ((1 << (m_spellProto->EffectMechanic[i] -1)) & mechanicMask))
             return true;
     return false;
 }
@@ -8930,7 +9115,7 @@ void SpellAuraHolder::UnregisterSingleCastHolder()
         else
         {
             sLog.outError("Couldn't find the caster of the single target aura (SpellId %u), may crash later!", GetId());
-            ASSERT(false);
+//            ASSERT(false);
         }
         m_isSingleTarget = false;
     }

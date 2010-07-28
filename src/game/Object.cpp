@@ -44,6 +44,7 @@
 #include "ObjectPosSelector.h"
 
 #include "TemporarySummon.h"
+#include "OutdoorPvPMgr.h"
 
 uint32 GuidHigh2TypeId(uint32 guid_hi)
 {
@@ -303,7 +304,7 @@ void Object::BuildMovementUpdate(ByteBuffer * data, uint16 updateFlags) const
                 // remove unknown, unused etc flags for now
                 player->m_movementInfo.RemoveMovementFlag(MOVEFLAG_SPLINE_ENABLED);
 
-                if(player->isInFlight())
+                if(player->IsTaxiFlying())
                 {
                     ASSERT(player->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE);
                     player->m_movementInfo.AddMovementFlag(MOVEFLAG_FORWARD);
@@ -340,7 +341,7 @@ void Object::BuildMovementUpdate(ByteBuffer * data, uint16 updateFlags) const
 
             Player *player = ((Player*)unit);
 
-            if(!player->isInFlight())
+            if(!player->IsTaxiFlying())
             {
                 DEBUG_LOG("_BuildMovementUpdate: MOVEFLAG_SPLINE_ENABLED but not in flight");
                 return;
@@ -598,7 +599,7 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask *
                 if( index == UNIT_NPC_FLAGS )
                 {
                     // remove custom flag before sending
-                    uint32 appendValue = m_uint32Values[ index ] & ~UNIT_NPC_FLAG_GUARD;
+                    uint32 appendValue = m_uint32Values[ index ] & ~(UNIT_NPC_FLAG_GUARD + UNIT_NPC_FLAG_OUTDOORPVP);
 
                     if (GetTypeId() == TYPEID_UNIT)
                     {
@@ -1090,8 +1091,8 @@ void Object::BuildUpdateData( UpdateDataMapType& /*update_players */)
 
 WorldObject::WorldObject()
     : m_isActiveObject(false), m_currMap(NULL), m_mapId(0), m_InstanceId(0), m_phaseMask(PHASEMASK_NORMAL),
-    m_groupLootTimer(0), m_groupLootId(0),
-    m_positionX(0.0f), m_positionY(0.0f), m_positionZ(0.0f), m_orientation(0.0f)
+    m_groupLootTimer(0), m_groupLootId(0), m_lootGroupRecipientId(0),
+    m_zoneScript(NULL),m_positionX(0.0f), m_positionY(0.0f), m_positionZ(0.0f), m_orientation(0.0f)
 {
 }
 
@@ -1629,6 +1630,16 @@ void WorldObject::AddObjectToRemoveList()
     GetMap()->AddObjectToRemoveList(this);
 }
 
+void WorldObject::SetZoneScript()
+{
+    if(Map *map = GetMap())
+    {
+        if(!map->IsBattleGroundOrArena() && !map->IsDungeon())
+            m_zoneScript = sOutdoorPvPMgr.GetZoneScript(GetZoneId());
+    }
+}
+
+
 Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime)
 {
     TemporarySummon* pCreature = new TemporarySummon(GetObjectGuid());
@@ -1963,24 +1974,6 @@ void WorldObject::BuildUpdateData( UpdateDataMapType & update_players)
     ClearUpdateMask(false);
 }
 
-void WorldObject::StartGroupLoot( Group* group, uint32 timer )
-{
-    m_groupLootId = group->GetId();
-    m_groupLootTimer = timer;
-}
-
-void WorldObject::StopGroupLoot()
-{
-    if (!m_groupLootId)
-        return;
-
-    if (Group* group = sObjectMgr.GetGroupById(m_groupLootId))
-        group->EndRoll();
-
-    m_groupLootTimer = 0;
-    m_groupLootId = 0;
-}
-
 bool WorldObject::IsControlledByPlayer() const
 {
     switch (GetTypeId())
@@ -1999,3 +1992,99 @@ bool WorldObject::IsControlledByPlayer() const
     }
 }
 
+void WorldObject::StartGroupLoot( Group* group, uint32 timer )
+{
+    m_groupLootId = group->GetId();
+    m_groupLootTimer = timer;
+}
+
+void WorldObject::StopGroupLoot()
+{
+    if (!m_groupLootId)
+        return;
+
+    if (Group* group = sObjectMgr.GetGroupById(m_groupLootId))
+        group->EndRoll();
+
+    m_groupLootTimer = 0;
+    m_groupLootId = 0;
+}
+
+/**
+ * Return original player who tap creature, it can be different from player/group allowed to loot so not use it for loot code
+ */
+Player* WorldObject::GetOriginalLootRecipient() const
+{
+    return !m_lootRecipientGuid.IsEmpty() ? ObjectAccessor::FindPlayer(m_lootRecipientGuid) : NULL;
+}
+
+/**
+ * Return group if player tap creature as group member, independent is player after leave group or stil be group member
+ */
+Group* WorldObject::GetGroupLootRecipient() const
+{
+    // original recipient group if set and not disbanded
+    return m_lootGroupRecipientId ? sObjectMgr.GetGroupById(m_lootGroupRecipientId) : NULL;
+}
+
+/**
+ * Return player who can loot tapped creature (member of group or single player)
+ *
+ * In case when original player tap creature as group member then group tap prefered.
+ * This is for example important if player after tap leave group.
+ * If group not exist or disbanded or player tap creature not as group member return player
+ */
+Player* WorldObject::GetLootRecipient() const
+{
+    // original recipient group if set and not disbanded
+    Group* group = GetGroupLootRecipient();
+
+    // original recipient player if online
+    Player* player = GetOriginalLootRecipient();
+
+    // if group not set or disbanded return original recipient player if any
+    if (!group)
+        return player;
+
+    // group case
+
+    // return player if it still be in original recipient group
+    if (player && player->GetGroup() == group)
+        return player;
+
+    // find any in group
+    for(GroupReference *itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
+        if (Player *p = itr->getSource())
+            return p;
+
+    return NULL;
+}
+
+/**
+ * Set player and group (if player group member) who tap creature
+ */
+void WorldObject::SetLootRecipient(Unit *unit)
+{
+    // set the player whose group should receive the right
+    // to loot the creature after it dies
+    // should be set to NULL after the loot disappears
+
+    if (!unit)
+    {
+        m_lootRecipientGuid.Clear();
+        m_lootGroupRecipientId = 0;
+        return;
+    }
+
+    Player* player = unit->GetCharmerOrOwnerPlayerOrPlayerItself();
+    if(!player)                                             // normal creature, no player involved
+        return;
+
+    // set player for non group case or if group will disbanded
+    m_lootRecipientGuid = player->GetObjectGuid();
+
+    // set group for group existed case including if player will leave group at loot time
+    if (Group* group = player->GetGroup())
+        m_lootGroupRecipientId = group->GetId();
+
+}

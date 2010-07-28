@@ -54,6 +54,7 @@ class Vehicle;
 class InstanceSave;
 class Spell;
 class Item;
+class OutdoorPvP;
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -633,6 +634,8 @@ enum PlayerExtraFlags
     PLAYER_EXTRA_TAXICHEAT          = 0x0008,
     PLAYER_EXTRA_GM_INVISIBLE       = 0x0010,
     PLAYER_EXTRA_GM_CHAT            = 0x0020,               // Show GM badge in chat messages
+    PLAYER_EXTRA_AUCTION_NEUTRAL    = 0x0040,
+    PLAYER_EXTRA_AUCTION_ENEMY      = 0x0080,               // overwrite PLAYER_EXTRA_AUCTION_NEUTRAL
 
     // other states
     PLAYER_EXTRA_PVP_DEATH          = 0x0100                // store PvP death status until corpse creating.
@@ -925,7 +928,6 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOADMAILEDITEMS,
     PLAYER_LOGIN_QUERY_LOADTALENTS,
     PLAYER_LOGIN_QUERY_LOADWEEKLYQUESTSTATUS,
-    PLAYER_LOGIN_QUERY_LOADRANDOMBG,
 
     MAX_PLAYER_LOGIN_QUERY
 };
@@ -1175,6 +1177,19 @@ class MANGOS_DLL_SPEC Player : public Unit
         void SetGMVisible(bool on);
         void SetPvPDeath(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_PVP_DEATH; else m_ExtraFlags &= ~PLAYER_EXTRA_PVP_DEATH; }
 
+        // 0 = own auction, -1 = enemy auction, 1 = goblin auction
+        int GetAuctionAccessMode() const { return m_ExtraFlags & PLAYER_EXTRA_AUCTION_ENEMY ? -1 : (m_ExtraFlags & PLAYER_EXTRA_AUCTION_NEUTRAL ? 1 : 0); }
+        void SetAuctionAccessMode(int state)
+        {
+            m_ExtraFlags &= ~ (PLAYER_EXTRA_AUCTION_ENEMY|PLAYER_EXTRA_AUCTION_NEUTRAL);
+
+            if(state < 0)
+                m_ExtraFlags |= PLAYER_EXTRA_AUCTION_ENEMY;
+            else if( state > 0)
+                m_ExtraFlags |= PLAYER_EXTRA_AUCTION_NEUTRAL;
+        }
+
+
         void GiveXP(uint32 xp, Unit* victim);
         void GiveLevel(uint32 level);
 
@@ -1280,7 +1295,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         uint8 CanBankItem( uint8 bag, uint8 slot, ItemPosCountVec& dest, Item *pItem, bool swap, bool not_loading = true ) const;
         uint8 CanUseItem( Item *pItem, bool not_loading = true ) const;
         bool HasItemTotemCategory( uint32 TotemCategory ) const;
-        bool CanUseItem( ItemPrototype const *pItem );
+        uint8 CanUseItem( ItemPrototype const *pItem ) const;
         uint8 CanUseAmmo( uint32 item ) const;
         Item* StoreNewItem( ItemPosCountVec const& pos, uint32 item, bool update,int32 randomPropertyId = 0 );
         Item* StoreItem( ItemPosCountVec const& pos, Item *pItem, bool update );
@@ -1342,6 +1357,12 @@ class MANGOS_DLL_SPEC Player : public Unit
         {
             Item* mainItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
             return mainItem && mainItem->GetProto()->InventoryType == INVTYPE_2HWEAPON && !CanTitanGrip();
+        }
+        bool HasTwoHandWeaponInOneHand() const
+        {
+            Item* offItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+            Item* mainItem = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+            return offItem && ((mainItem && mainItem->GetProto()->InventoryType == INVTYPE_2HWEAPON) || offItem->GetProto()->InventoryType == INVTYPE_2HWEAPON);
         }
         void SendNewItem( Item *item, uint32 count, bool received, bool created, bool broadcast = false );
         bool BuyItemFromVendorSlot(uint64 vendorguid, uint32 vendorslot, uint32 item, uint8 count, uint8 bag, uint8 slot);
@@ -1974,6 +1995,7 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         static uint32 TeamForRace(uint8 race);
         uint32 GetTeam() const { return m_team; }
+        TeamId GetTeamId() const { return m_team == ALLIANCE ? TEAM_ALLIANCE : TEAM_HORDE; }
         static uint32 getFactionForRace(uint8 race);
         void setFactionForRace(uint8 race);
 
@@ -2184,8 +2206,13 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool isTotalImmune();
         bool CanCaptureTowerPoint();
 
-        bool GetRandomWinner() { return m_IsBGRandomWinner; }
-        void SetRandomWinner(bool isWinner);
+        /*********************************************************/
+        /***               OUTDOOR PVP SYSTEM                  ***/
+        /*********************************************************/
+
+        OutdoorPvP * GetOutdoorPvP() const;
+        // returns true if the player is in active state for outdoor pvp objective capturing, false otherwise
+        bool IsOutdoorPvPActive();
 
         /*********************************************************/
         /***                    REST SYSTEM                    ***/
@@ -2233,7 +2260,8 @@ class MANGOS_DLL_SPEC Player : public Unit
         bool CanFly() const { return m_CanFly;  }
         void SetCanFly(bool CanFly) { m_CanFly=CanFly; }
         bool IsFlying() const { return m_movementInfo.HasMovementFlag(MOVEFLAG_FLYING); }
-        bool IsKnowHowFlyIn(uint32 mapid, uint32 zone, uint32 area) const;
+        bool IsFreeFlying() const { return HasAuraType(SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED) || HasAuraType(SPELL_AURA_FLY); }
+        bool CanStartFlyInArea(uint32 mapid, uint32 zone, uint32 area) const;
 
         void SetClientControl(Unit* target, uint8 allowMove);
         void SetMover(Unit* target) { m_mover = target ? target : this; }
@@ -2393,8 +2421,11 @@ class MANGOS_DLL_SPEC Player : public Unit
         void AddRunePower(uint8 index);
         void InitRunes();
 
+        AchievementMgr const& GetAchievementMgr() const { return m_achievementMgr; }
         AchievementMgr& GetAchievementMgr() { return m_achievementMgr; }
         void UpdateAchievementCriteria(AchievementCriteriaTypes type, uint32 miscvalue1=0, uint32 miscvalue2=0, Unit *unit=NULL, uint32 time=0);
+        void CompletedAchievement(AchievementEntry const* entry);
+
         bool HasTitle(uint32 bitIndex);
         bool HasTitle(CharTitlesEntry const* title) { return HasTitle(title->bit_index); }
         void SetTitle(CharTitlesEntry const* title, bool lost = false);
@@ -2419,8 +2450,6 @@ class MANGOS_DLL_SPEC Player : public Unit
 
         BgBattleGroundQueueID_Rec m_bgBattleGroundQueueID[PLAYER_MAX_BATTLEGROUND_QUEUES];
         BGData                    m_bgData;
-
-        bool m_IsBGRandomWinner;
 
         /*********************************************************/
         /***                    QUEST SYSTEM                   ***/
@@ -2447,7 +2476,6 @@ class MANGOS_DLL_SPEC Player : public Unit
         void _LoadQuestStatus(QueryResult *result);
         void _LoadDailyQuestStatus(QueryResult *result);
         void _LoadWeeklyQuestStatus(QueryResult *result);
-        void _LoadRandomBGStatus(QueryResult *result);
         void _LoadGroup(QueryResult *result);
         void _LoadSkills(QueryResult *result);
         void _LoadSpells(QueryResult *result);
@@ -2647,7 +2675,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         Item* _StoreItem( uint16 pos, Item *pItem, uint32 count, bool clone, bool update );
 
         void UpdateKnownCurrencies(uint32 itemId, bool apply);
-        int32 CalculateReputationGain(uint32 creatureOrQuestLevel, int32 rep, int32 faction, bool for_quest);
+        int32 CalculateReputationGain(uint32 creatureOrQuestLevel, int32 rep, int32 faction, bool for_quest, bool noQuestBonus = false);
         void AdjustQuestReqItemCount( Quest const* pQuest, QuestStatusData& questStatusData );
 
         void SetCanDelayTeleport(bool setting) { m_bCanDelayTeleport = setting; }

@@ -112,6 +112,8 @@ enum ReputationRank
 #define MIN_REPUTATION_RANK (REP_HATED)
 #define MAX_REPUTATION_RANK 8
 
+#define MAX_SPILLOVER_FACTIONS 4
+
 enum MoneyConstants
 {
     COPPER = 1,
@@ -517,6 +519,13 @@ enum Language
 
 #define LANGUAGES_COUNT   19
 
+enum TeamId
+{
+    TEAM_ALLIANCE = 0,
+    TEAM_HORDE,
+    TEAM_NEUTRAL,
+};
+
 enum Team
 {
     HORDE               = 67,
@@ -526,8 +535,9 @@ enum Team
     //TEAM_HORDE_FORCES        = 892,
     //TEAM_SANCTUARY           = 936,
     //TEAM_OUTLAND             = 980,
-    //TEAM_OTHER               = 0,                         // if ReputationListId > 0 && Flags != FACTION_FLAG_TEAM_HEADER
+    TEAM_OTHER               = 0,                         // if ReputationListId > 0 && Flags != FACTION_FLAG_TEAM_HEADER
 };
+const Team TeamId2Team[3] = {ALLIANCE, HORDE, TEAM_OTHER};
 
 enum SpellEffects
 {
@@ -680,7 +690,7 @@ enum SpellEffects
     SPELL_EFFECT_QUEST_FAIL                = 147,
     SPELL_EFFECT_148                       = 148,
     SPELL_EFFECT_149                       = 149,
-    SPELL_EFFECT_150                       = 150,
+    SPELL_EFFECT_QUEST_START               = 150,
     SPELL_EFFECT_TRIGGER_SPELL_2           = 151,
     SPELL_EFFECT_152                       = 152,
     SPELL_EFFECT_153                       = 153,
@@ -694,7 +704,7 @@ enum SpellEffects
     SPELL_EFFECT_TALENT_SPEC_COUNT         = 161,
     SPELL_EFFECT_TALENT_SPEC_SELECT        = 162,
     SPELL_EFFECT_163                       = 163,
-    SPELL_EFFECT_164                       = 164,
+    SPELL_EFFECT_REMOVE_AURA               = 164,
     TOTAL_SPELL_EFFECTS                    = 165
 };
 

@@ -186,6 +186,7 @@ struct EquipmentInfo
 // from `creature` table
 struct CreatureData
 {
+    explicit CreatureData() : dbData(true) {}
     uint32 id;                                              // entry in creature_template
     uint16 mapid;
     uint16 phaseMask;
@@ -203,6 +204,7 @@ struct CreatureData
     bool  is_dead;
     uint8 movementType;
     uint8 spawnMask;
+    bool dbData;
 };
 
 struct CreatureDataAddonAura
@@ -275,17 +277,13 @@ enum AttackingTarget
 // Vendors
 struct VendorItem
 {
-    VendorItem(uint32 _item, uint32 _maxcount, uint32 _incrtime, int32 _ExtendedCost)
+    VendorItem(uint32 _item, uint32 _maxcount, uint32 _incrtime, uint32 _ExtendedCost)
         : item(_item), maxcount(_maxcount), incrtime(_incrtime), ExtendedCost(_ExtendedCost) {}
 
     uint32 item;
     uint32 maxcount;                                        // 0 for infinity item amount
     uint32 incrtime;                                        // time for restore items amount if maxcount != 0
-    int32  ExtendedCost;                                    // negative if need exclude normal item money cost
-
-    // helpers
-    uint32 IsExcludeMoneyPrice() const { return ExtendedCost < 0; }
-    uint32 GetExtendedCostId() const { return std::abs(ExtendedCost); }
+    uint32 ExtendedCost;                                    // index in ItemExtendedCost.dbc
 };
 typedef std::vector<VendorItem*> VendorItemList;
 
@@ -300,12 +298,12 @@ struct VendorItemData
     }
     bool Empty() const { return m_items.empty(); }
     uint8 GetItemCount() const { return m_items.size(); }
-    void AddItem( uint32 item, uint32 maxcount, uint32 ptime, int32 ExtendedCost)
+    void AddItem( uint32 item, uint32 maxcount, uint32 ptime, uint32 ExtendedCost)
     {
         m_items.push_back(new VendorItem(item, maxcount, ptime, ExtendedCost));
     }
     bool RemoveItem( uint32 item_id );
-    VendorItem const* FindItemCostPair(uint32 item_id, int32 extendedCost) const;
+    VendorItem const* FindItemCostPair(uint32 item_id, uint32 extendedCost) const;
 
     void Clear()
     {
@@ -536,15 +534,8 @@ class MANGOS_DLL_SPEC Creature : public Unit
         bool lootForSkin;
 
         void PrepareBodyLootState();
-        ObjectGuid GetLootRecipientGuid() const { return m_lootRecipientGuid; }
-        uint32 GetLootGroupRecipientId() const { return m_lootGroupRecipientId; }
-        Player* GetLootRecipient() const;                   // use group cases as prefered
-        Group* GetGroupLootRecipient() const;
-        bool HasLootRecipient() const { return m_lootGroupRecipientId || !m_lootRecipientGuid.IsEmpty(); }
-        bool IsGroupLootRecipient() const { return m_lootGroupRecipientId; }
         void SetLootRecipient(Unit* unit);
         void AllLootRemovedFromCorpse();
-        Player* GetOriginalLootRecipient() const;           // ignore group changes/etc, not for looting
 
         SpellEntry const *reachWithSpellAttack(Unit *pVictim);
         SpellEntry const *reachWithSpellCure(Unit *pVictim);
@@ -643,8 +634,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
         static float _GetDamageMod(int32 Rank);
 
         uint32 m_lootMoney;
-        ObjectGuid m_lootRecipientGuid;                     // player who will have rights for looting if m_lootGroupRecipient==0 or group disbanded
-        uint32 m_lootGroupRecipientId;                      // group who will have rights for looting if set and exist
 
         /// Timers
         uint32 m_deathTimer;                                // (msecs)timer for death or corpse disappearance

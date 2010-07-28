@@ -478,7 +478,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     }
 
     // fall damage generation (ignore in flight case that can be triggered also at lags in moment teleportation to another map).
-    if (opcode == MSG_MOVE_FALL_LAND && plMover && !plMover->isInFlight())
+    if (opcode == MSG_MOVE_FALL_LAND && plMover && !plMover->IsTaxiFlying())
         plMover->HandleFall(movementInfo);
 
     if (plMover && (movementInfo.HasMovementFlag(MOVEFLAG_SWIMMING) != plMover->IsInWater()))
@@ -497,6 +497,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     if (plMover && (plMover->m_transport == 0) && sWorld.GetMvAnticheatEnable() &&
         GetPlayer()->GetSession()->GetSecurity() <= sWorld.GetMvAnticheatGmLevel() &&
         GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType()!=FLIGHT_MOTION_TYPE &&
+        !GetPlayer()->IsTaxiFlying() &&
         Anti_TeleTimeDiff>Anti_TeleTimeIgnoreDiff)
     {
         const uint32 CurTime=getMSTime();

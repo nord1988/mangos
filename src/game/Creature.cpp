@@ -38,6 +38,7 @@
 #include "WaypointMovementGenerator.h"
 #include "InstanceData.h"
 #include "BattleGroundMgr.h"
+#include "OutdoorPvPMgr.h"
 #include "Spell.h"
 #include "Util.h"
 #include "GridNotifiers.h"
@@ -74,7 +75,7 @@ bool VendorItemData::RemoveItem( uint32 item_id )
     return found;
 }
 
-VendorItem const* VendorItemData::FindItemCostPair(uint32 item_id, int32 extendedCost) const
+VendorItem const* VendorItemData::FindItemCostPair(uint32 item_id, uint32 extendedCost) const
 {
     for(VendorItemList::const_iterator i = m_items.begin(); i != m_items.end(); ++i )
         if((*i)->item == item_id && (*i)->ExtendedCost == extendedCost)
@@ -110,8 +111,7 @@ bool ForcedDespawnDelayEvent::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
 
 Creature::Creature(CreatureSubtype subtype) :
 Unit(), i_AI(NULL),
-lootForPickPocketed(false), lootForBody(false), lootForSkin(false),
-m_lootMoney(0),
+lootForPickPocketed(false), lootForBody(false), lootForSkin(false),m_lootMoney(0),
 m_deathTimer(0), m_respawnTime(0), m_respawnDelay(25), m_corpseDelay(60), m_respawnradius(5.0f),
 m_subtype(subtype), m_defaultMovementType(IDLE_MOTION_TYPE), m_DBTableGuid(0), m_equipmentId(0),
 m_AlreadyCallAssistance(false), m_AlreadySearchedAssistance(false),
@@ -146,7 +146,12 @@ void Creature::AddToWorld()
 {
     ///- Register the creature for guid lookup
     if(!IsInWorld() && GetObjectGuid().GetHigh() == HIGHGUID_UNIT)
+    {
+        if(m_zoneScript)
+            m_zoneScript->OnCreatureCreate(this, true);
+
         GetMap()->GetObjectsStore().insert<Creature>(GetGUID(), (Creature*)this);
+    }
 
     Unit::AddToWorld();
 }
@@ -155,7 +160,12 @@ void Creature::RemoveFromWorld()
 {
     ///- Remove the creature from the accessor
     if(IsInWorld() && GetObjectGuid().GetHigh() == HIGHGUID_UNIT)
+    {
+        if(m_zoneScript)
+            m_zoneScript->OnCreatureCreate(this, false);
+
         GetMap()->GetObjectsStore().erase<Creature>(GetGUID(), (Creature*)NULL);
+    }
 
     Unit::RemoveFromWorld();
 }
@@ -801,57 +811,6 @@ void Creature::PrepareBodyLootState()
     RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
 }
 
-
-/**
- * Return original player who tap creature, it can be different from player/group allowed to loot so not use it for loot code
- */
-Player* Creature::GetOriginalLootRecipient() const
-{
-    return !m_lootRecipientGuid.IsEmpty() ? ObjectAccessor::FindPlayer(m_lootRecipientGuid) : NULL;
-}
-
-/**
- * Return group if player tap creature as group member, independent is player after leave group or stil be group member
- */
-Group* Creature::GetGroupLootRecipient() const
-{
-    // original recipient group if set and not disbanded
-    return m_lootGroupRecipientId ? sObjectMgr.GetGroupById(m_lootGroupRecipientId) : NULL;
-}
-
-/**
- * Return player who can loot tapped creature (member of group or single player)
- *
- * In case when original player tap creature as group member then group tap prefered.
- * This is for example important if player after tap leave group.
- * If group not exist or disbanded or player tap creature not as group member return player
- */
-Player* Creature::GetLootRecipient() const
-{
-    // original recipient group if set and not disbanded
-    Group* group = GetGroupLootRecipient();
-
-    // original recipient player if online
-    Player* player = GetOriginalLootRecipient();
-
-    // if group not set or disbanded return original recipient player if any
-    if (!group)
-        return player;
-
-    // group case
-
-    // return player if it still be in original recipient group
-    if (player && player->GetGroup() == group)
-        return player;
-
-    // find any in group
-    for(GroupReference *itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
-        if (Player *p = itr->getSource())
-            return p;
-
-    return NULL;
-}
-
 /**
  * Set player and group (if player group member) who tap creature
  */
@@ -1102,6 +1061,14 @@ float Creature::GetSpellDamageMod(int32 Rank)
 
 bool Creature::CreateFromProto(uint32 guidlow, uint32 Entry, uint32 team, const CreatureData *data)
 {
+    SetZoneScript();
+    if(m_zoneScript && data)
+    {
+        Entry = m_zoneScript->GetCreatureEntry(guidlow, data);
+        if(!Entry)
+            return false;
+    }
+
     CreatureInfo const *cinfo = ObjectMgr::GetCreatureTemplate(Entry);
     if(!cinfo)
     {
@@ -1356,8 +1323,8 @@ bool Creature::FallGround()
     if (getDeathState() == DEAD_FALLING)
         return false;
 
-    // Let's do with no vmap because no way to get far distance with vmap high call
-    float tz = GetMap()->GetHeight(GetPositionX(), GetPositionY(), GetPositionZ(), false);
+    // use larger distance for vmap height search than in most other cases
+    float tz = GetMap()->GetHeight(GetPositionX(), GetPositionY(), GetPositionZ(), true, MAX_FALL_DISTANCE);
 
     // Abort too if the ground is very near
     if (fabs(GetPositionZ() - tz) < 0.1f)
@@ -1796,7 +1763,7 @@ bool Creature::LoadCreaturesAddon(bool reload)
             }
 
             SpellAuraHolder *holder = GetSpellAuraHolder(cAura->spell_id, GetGUID());
-                   
+
             bool addedToExisting = true;
             if (!holder)
             {
@@ -1815,7 +1782,7 @@ bool Creature::LoadCreaturesAddon(bool reload)
             }
             else
                 AddSpellAuraHolder(holder);
-         
+
             DEBUG_FILTER_LOG(LOG_FILTER_SPELL_CAST, "Spell: %u - Aura %u added to creature (GUIDLow: %u Entry: %u )", cAura->spell_id, AdditionalSpellInfo->EffectApplyAuraName[EFFECT_INDEX_0],GetGUIDLow(),GetEntry());
         }
     }
@@ -2012,8 +1979,6 @@ void Creature::AllLootRemovedFromCorpse()
     if (lootForBody && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE))
     {
         uint32 nDeathTimer;
-
-        CreatureInfo const *cinfo = GetCreatureInfo();
 
         // corpse was not skinned -> apply corpse looted timer
         if (!lootForSkin)

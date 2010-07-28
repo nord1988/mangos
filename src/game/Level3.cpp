@@ -244,15 +244,15 @@ bool ChatHandler::HandleAHBotOptionsCommand(const char* args)
         {
             auctionbot.Commands(6, ahMapID, AHB_BLUE, param2);
         }
-        else if	(strncmp(param1,"purple",l) == 0)
+        else if (strncmp(param1,"purple",l) == 0)
         {
             auctionbot.Commands(6, ahMapID, AHB_PURPLE, param2);
         }
-        else if	(strncmp(param1,"orange",l) == 0)
+        else if (strncmp(param1,"orange",l) == 0)
         {
             auctionbot.Commands(6, ahMapID, AHB_ORANGE, param2);
         }
-        else if	(strncmp(param1,"yellow",l) == 0)
+        else if (strncmp(param1,"yellow",l) == 0)
         {
             auctionbot.Commands(6, ahMapID, AHB_YELLOW, param2);
         }
@@ -287,15 +287,15 @@ bool ChatHandler::HandleAHBotOptionsCommand(const char* args)
         {
             auctionbot.Commands(7, ahMapID, AHB_BLUE, param2);
         }
-        else if	(strncmp(param1,"purple",l) == 0)
+        else if (strncmp(param1,"purple",l) == 0)
         {
             auctionbot.Commands(7, ahMapID, AHB_PURPLE, param2);
         }
-        else if	(strncmp(param1,"orange",l) == 0)
+        else if (strncmp(param1,"orange",l) == 0)
         {
             auctionbot.Commands(7, ahMapID, AHB_ORANGE, param2);
         }
-        else if	(strncmp(param1,"yellow",l) == 0)
+        else if (strncmp(param1,"yellow",l) == 0)
         {
             auctionbot.Commands(7, ahMapID, AHB_YELLOW, param2);
         }
@@ -336,15 +336,15 @@ bool ChatHandler::HandleAHBotOptionsCommand(const char* args)
         {
             auctionbot.Commands(8, ahMapID, AHB_BLUE, param2);
         }
-        else if	(strncmp(param1,"purple",l) == 0)
+        else if (strncmp(param1,"purple",l) == 0)
         {
             auctionbot.Commands(8, ahMapID, AHB_PURPLE, param2);
         }
-        else if	(strncmp(param1,"orange",l) == 0)
+        else if (strncmp(param1,"orange",l) == 0)
         {
             auctionbot.Commands(8, ahMapID, AHB_ORANGE, param2);
         }
-        else if	(strncmp(param1,"yellow",l) == 0)
+        else if (strncmp(param1,"yellow",l) == 0)
         {
             auctionbot.Commands(8, ahMapID, AHB_YELLOW, param2);
         }
@@ -385,15 +385,15 @@ bool ChatHandler::HandleAHBotOptionsCommand(const char* args)
         {
             auctionbot.Commands(9, ahMapID, AHB_BLUE, param2);
         }
-        else if	(strncmp(param1,"purple",l) == 0)
+        else if (strncmp(param1,"purple",l) == 0)
         {
             auctionbot.Commands(9, ahMapID, AHB_PURPLE, param2);
         }
-        else if	(strncmp(param1,"orange",l) == 0)
+        else if (strncmp(param1,"orange",l) == 0)
         {
             auctionbot.Commands(9, ahMapID, AHB_ORANGE, param2);
         }
-        else if	(strncmp(param1,"yellow",l) == 0)
+        else if (strncmp(param1,"yellow",l) == 0)
         {
             auctionbot.Commands(9, ahMapID, AHB_YELLOW, param2);
         }
@@ -434,15 +434,15 @@ bool ChatHandler::HandleAHBotOptionsCommand(const char* args)
         {
             auctionbot.Commands(10, ahMapID, AHB_BLUE, param2);
         }
-        else if	(strncmp(param1,"purple",l) == 0)
+        else if (strncmp(param1,"purple",l) == 0)
         {
             auctionbot.Commands(10, ahMapID, AHB_PURPLE, param2);
         }
-        else if	(strncmp(param1,"orange",l) == 0)
+        else if (strncmp(param1,"orange",l) == 0)
         {
             auctionbot.Commands(10, ahMapID, AHB_ORANGE, param2);
         }
-        else if	(strncmp(param1,"yellow",l) == 0)
+        else if (strncmp(param1,"yellow",l) == 0)
         {
             auctionbot.Commands(10, ahMapID, AHB_YELLOW, param2);
         }
@@ -477,15 +477,15 @@ bool ChatHandler::HandleAHBotOptionsCommand(const char* args)
         {
             auctionbot.Commands(11, ahMapID, AHB_BLUE, param2);
         }
-        else if	(strncmp(param1,"purple",l) == 0)
+        else if (strncmp(param1,"purple",l) == 0)
         {
             auctionbot.Commands(11, ahMapID, AHB_PURPLE, param2);
         }
-        else if	(strncmp(param1,"orange",l) == 0)
+        else if (strncmp(param1,"orange",l) == 0)
         {
             auctionbot.Commands(11, ahMapID, AHB_ORANGE, param2);
         }
-        else if	(strncmp(param1,"yellow",l) == 0)
+        else if (strncmp(param1,"yellow",l) == 0)
         {
             auctionbot.Commands(11, ahMapID, AHB_YELLOW, param2);
         }
@@ -981,6 +981,22 @@ bool ChatHandler::HandleReloadReservedNameCommand(const char*)
     sLog.outString( "Loading ReservedNames... (`reserved_name`)" );
     sObjectMgr.LoadReservedPlayersNames();
     SendGlobalSysMessage("DB table `reserved_name` (player reserved names) reloaded.");
+    return true;
+}
+
+bool ChatHandler::HandleReloadReputationRewardRateCommand(const char*)
+{
+    sLog.outString( "Re-Loading `reputation_reward_rate` Table!" );
+    sObjectMgr.LoadReputationRewardRate();
+    SendGlobalSysMessage("DB table `reputation_reward_rate` reloaded.");
+    return true;
+}
+
+bool ChatHandler::HandleReloadReputationSpilloverTemplateCommand(const char*)
+{
+    sLog.outString( "Re-Loading `reputation_spillover_template` Table!" );
+    sObjectMgr.LoadReputationSpilloverTemplate();
+    SendGlobalSysMessage("DB table `reputation_spillover_template` reloaded.");
     return true;
 }
 
@@ -2862,7 +2878,7 @@ bool ChatHandler::HandleListItemCommand(const char* args)
 
     // auction case
     uint32 auc_count = 0;
-    result=CharacterDatabase.PQuery("SELECT COUNT(item_template) FROM auctionhouse WHERE item_template='%u'",item_id);
+    result=CharacterDatabase.PQuery("SELECT COUNT(item_template) FROM auction WHERE item_template='%u'",item_id);
     if(result)
     {
         auc_count = (*result)[0].GetUInt32();
@@ -2873,8 +2889,8 @@ bool ChatHandler::HandleListItemCommand(const char* args)
     {
         result=CharacterDatabase.PQuery(
         //           0                      1                       2                   3
-            "SELECT  auctionhouse.itemguid, auctionhouse.itemowner, characters.account, characters.name "
-            "FROM auctionhouse,characters WHERE auctionhouse.item_template='%u' AND characters.guid = auctionhouse.itemowner LIMIT %u",
+            "SELECT  auction.itemguid, auction.itemowner, characters.account, characters.name "
+            "FROM auction,characters WHERE auction.item_template='%u' AND characters.guid = auction.itemowner LIMIT %u",
             item_id,uint32(count));
     }
     else
@@ -4620,9 +4636,45 @@ bool ChatHandler::HandleHideAreaCommand(const char* args)
     return true;
 }
 
+bool ChatHandler::HandleAuctionAllianceCommand(const char* /*args*/)
+{
+    m_session->GetPlayer()->SetAuctionAccessMode(m_session->GetPlayer()->GetTeam() != ALLIANCE ? -1 : 0);
+    m_session->SendAuctionHello(m_session->GetPlayer());
+    return true;
+}
+
+bool ChatHandler::HandleAuctionHordeCommand(const char* /*args*/)
+{
+    m_session->GetPlayer()->SetAuctionAccessMode(m_session->GetPlayer()->GetTeam() != HORDE ? -1 : 0);
+    m_session->SendAuctionHello(m_session->GetPlayer());
+    return true;
+}
+
+bool ChatHandler::HandleAuctionGoblinCommand(const char* /*args*/)
+{
+    m_session->GetPlayer()->SetAuctionAccessMode(1);
+    m_session->SendAuctionHello(m_session->GetPlayer());
+    return true;
+}
+
+bool ChatHandler::HandleAuctionCommand(const char* /*args*/)
+{
+    m_session->GetPlayer()->SetAuctionAccessMode(0);
+    m_session->SendAuctionHello(m_session->GetPlayer());
+
+    return true;
+}
+
 bool ChatHandler::HandleBankCommand(const char* /*args*/)
 {
     m_session->SendShowBank( m_session->GetPlayer()->GetGUID() );
+
+    return true;
+}
+
+bool ChatHandler::HandleStableCommand(const char* /*args*/)
+{
+    m_session->SendStablePet(m_session->GetPlayer()->GetGUID());
 
     return true;
 }

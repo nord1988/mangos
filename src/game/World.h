@@ -192,6 +192,8 @@ enum eConfigUInt32Values
 enum eConfigInt32Values
 {
     CONFIG_INT32_DEATH_SICKNESS_LEVEL = 0,
+    CONFIG_INT32_ARENA_STARTRATING,
+    CONFIG_INT32_ARENA_STARTPERSONALRATING,
     CONFIG_INT32_VALUE_COUNT
 };
 
@@ -319,6 +321,7 @@ enum eConfigBoolValues
     CONFIG_BOOL_STATS_SAVE_ONLY_ON_LOGOUT,
     CONFIG_BOOL_CLEAN_CHARACTER_DB,
     CONFIG_BOOL_VMAP_INDOOR_CHECK,
+    CONFIG_BOOL_LOOT_CHESTS_IGNORE_DB,
     CONFIG_BOOL_VALUE_COUNT
 };
 
@@ -508,7 +511,6 @@ class World
         /// Next daily quests reset time
         time_t GetNextDailyQuestsResetTime() const { return m_NextDailyQuestReset; }
         time_t GetNextWeeklyQuestsResetTime() const { return m_NextWeeklyQuestReset; }
-        time_t GetNextRandomBGResetTime() const { return m_NextRandomBGReset; }
 
         /// Get the maximum skill level a player can reach
         uint16 GetConfigMaxSkillValue() const
@@ -632,10 +634,8 @@ class World
 
         void InitDailyQuestResetTime();
         void InitWeeklyQuestResetTime();
-        void InitRandomBGResetTime();
         void ResetDailyQuests();
         void ResetWeeklyQuests();
-        void ResetRandomBG();
     private:
         void setConfig(eConfigUInt32Values index, char const* fieldname, uint32 defvalue);
         void setConfig(eConfigInt32Values index, char const* fieldname, int32 defvalue);
@@ -726,7 +726,6 @@ class World
         // next daily quests reset time
         time_t m_NextDailyQuestReset;
         time_t m_NextWeeklyQuestReset;
-        time_t m_NextRandomBGReset;
 
         //Player Queue
         Queue m_QueuedPlayer;

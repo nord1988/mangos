@@ -207,7 +207,7 @@ vmap.enableIndoorCheck = 1
 DetectPosCollision = 1
 TargetPosRecalculateRange = 1.5
 UpdateUptimeInterval = 10
-MaxCoreStuckTime = 0
+MaxCoreStuckTime = 30
 AddonChannel = 1
 CleanCharacterDB = 1
 
@@ -346,14 +346,14 @@ LogFilter_TransportMoves = 1
 LogFilter_VisibilityChanges = 1
 LogFilter_Weather = 1
 LogFilter_DbStrictedCheck = 1
-LogFilter_PeriodicAffects = 0
-LogFilter_PlayerMoves = 0
-LogFilter_SQLText = 0
-LogFilter_AIAndMovegens = 0
-LogFilter_PlayerStats = 0
-LogFilter_Damage = 0
-LogFilter_Combat = 0
-LogFilter_SpellCast = 0
+LogFilter_PeriodicAffects = 1
+LogFilter_PlayerMoves = 1
+LogFilter_SQLText = 1
+LogFilter_AIAndMovegens = 1
+LogFilter_PlayerStats = 1
+LogFilter_Damage = 1
+LogFilter_Combat = 1
+LogFilter_SpellCast = 1
 WorldLogFile = ""
 WorldLogTimestamp = 0
 DBErrorLogFile = "DBErrors.log"
@@ -361,8 +361,8 @@ CharLogFile = "Char.log"
 CharLogTimestamp = 0
 CharLogDump = 1
 GmLogFile = "GM.log"
-GmLogTimestamp = 0
-GmLogPerAccount = 0
+GmLogTimestamp = 1
+GmLogPerAccount = 1
 RaLogFile = ""
 LogColors = "13 7 11 9"
 
@@ -398,7 +398,7 @@ ChatLogRaidScreen = 0
 ChatLogBattleGroundScreen = 0
 
 # Lexics cutter parameters
-LexicsCutterEnable = 1
+LexicsCutterEnable = 0
 
 LexicsCutterInnormativeCut = 1
 LexicsCutterCutReplacement = &!@^%!^&*!!!
@@ -698,6 +698,10 @@ LexicsCutterNoActionOnGM = 1
 #        Useful when you don't want old log events to be overwritten by new, but increasing can slow down performance
 #        Default: 25
 #
+#    Loot.IgnoreChestGroupRulesFromDB
+#        Ignore database setting for loot rules for chests
+#        Default: 0 (disable)
+#
 #    TimerBar.Fatigue.GMLevel
 #        Disable/enable fatigue for security level (0..4) or high
 #        Default: 4 (None)
@@ -826,6 +830,7 @@ Quests.Weekly.ResetHour = 6
 Quests.IgnoreRaid = 0
 Guild.EventLogRecordsCount = 100
 Guild.BankEventLogRecordsCount = 25
+Loot.IgnoreChestGroupRulesFromDB = 1
 TimerBar.Fatigue.GMLevel = 4
 TimerBar.Fatigue.Max = 60
 TimerBar.Breath.GMLevel = 4
@@ -1165,11 +1170,11 @@ Channel.SilentlyGMJoin = 0
 #
 ###################################################################################################################
 
-GM.LoginState            = 2
-GM.Visible               = 2
-GM.AcceptTickets         = 2
-GM.Chat                  = 2
-GM.WhisperingTo          = 2
+GM.LoginState            = 1
+GM.Visible               = 0
+GM.AcceptTickets         = 1
+GM.Chat                  = 1
+GM.WhisperingTo          = 0
 GM.InGMList.Level        = 3
 GM.InWhoList.Level       = 3
 GM.LogTrade              = 1
@@ -1451,10 +1456,6 @@ Death.Bones.BattlegroundOrArena = 1
 #        Default: 1800000 (30 minutes)
 #                 0 - disable (not recommended)
 #
-#    BattleGround.Random.ResetHour
-#        Hour when random bg reset (0..23)
-#        Default: 6
-#
 ###################################################################################################################
 
 Battleground.CastDeserter = 1
@@ -1463,7 +1464,6 @@ Battleground.QueueAnnouncer.Start = 1
 Battleground.InvitationType = 1
 BattleGround.PrematureFinishTimer = 300000
 BattleGround.PremadeGroupWaitForMatch = 1800000
-BattleGround.Random.ResetHour = 6
 
 ###################################################################################################################
 # ARENA CONFIG
@@ -1509,9 +1509,17 @@ BattleGround.Random.ResetHour = 6
 #        Default: 1 (active)
 #                 0 (finished)
 #
+#    Arena.StartRating
+#        Default Rating at team creation
+#        Default: -1 (use season dependent default value)
+#
+#    Arena.StartPersonalRating
+#        Default Personal Rating at team creation
+#        Default: -1 (use season dependent default value)
+#
 ###################################################################################################################
 
-Arena.MaxRatingDifference = 500
+Arena.MaxRatingDifference = 150
 Arena.RatingDiscardTimer = 6000000
 Arena.AutoDistributePoints = 0
 Arena.AutoDistributeInterval = 7
@@ -1519,6 +1527,8 @@ Arena.QueueAnnouncer.Join = 1
 Arena.QueueAnnouncer.Exit = 1
 Arena.ArenaSeason.ID = 6
 Arena.ArenaSeason.InProgress = 1
+Arena.StartRating = 1
+Arena.StartPersonalRating = 1
 
 ###################################################################################################################
 # NETWORK CONFIG
@@ -1567,7 +1577,7 @@ Network.KickOnBadPacket = 0
 #    Auction House Bot character data
 #        AuctionHouseBot.Account is the account number (in realmd->account table) of the player you want to run as the auction bot.
 #       AuctionHouseBot.GUID is the GUID (in characters->characters table) of the player you want to run as the auction bot.
-#    Default: 0 (Auction House Bot disabled)
+#    Default: NONE (must be setted anywhere on true account and character!)
 #
 #    AuctionHouseBot.VendorItems
 #        Include items that can be bought from vendors.
@@ -1620,8 +1630,8 @@ Network.KickOnBadPacket = 0
 
 AuctionHouseBot.EnableSeller = 0
 AuctionHouseBot.EnableBuyer = 0
-AuctionHouseBot.Account = 0
-AuctionHouseBot.GUID = 0
+AuctionHouseBot.Account = (ACCOUNT NUMBER)
+AuctionHouseBot.GUID = (GUID)
 AuctionHouseBot.VendorItems = 0
 AuctionHouseBot.LootItems = 1
 AuctionHouseBot.OtherItems = 0
@@ -1821,6 +1831,6 @@ Anticheat.Movement.GmLevel = 0
 #
 ###################################################################################################################
 
-CharDelete.Method = 1
-CharDelete.MinLevel = 10
+CharDelete.Method = 0
+CharDelete.MinLevel = 0
 CharDelete.KeepDays = 0

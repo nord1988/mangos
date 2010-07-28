@@ -25,6 +25,7 @@ void BSWScriptedAI::doReset()
      memset(&m_uiSpell_Timer, 0, sizeof(m_uiSpell_Timer));
      memset(&m_BossSpell,0,sizeof(m_BossSpell));
      _bossSpellCount = 0;
+     _stage = 0;
      _loadSpellTable();
      resetTimers();
 };
@@ -139,81 +140,89 @@ CanCastResult BSWScriptedAI::_BSWSpellSelector(uint8 m_uiSpellIdx, Unit* pTarget
 
     Unit* pSummon = NULL;
 
-        debug_log("BSW: Casting spell number %u type %u",pSpell->m_uiSpellEntry[currentDifficulty], pSpell->m_CastTarget);
+    CanCastResult result = CAST_FAIL_OTHER;
+
+    debug_log("BSW: Casting spell number %u type %u",pSpell->m_uiSpellEntry[currentDifficulty], pSpell->m_CastTarget);
+
+        if (pSpell->m_uiSpellTimerMax[currentDifficulty] >= HOUR*IN_MILLISECONDS)
+            m_creature->InterruptNonMeleeSpells(true);
 
         switch (pSpell->m_CastTarget) {
 
             case DO_NOTHING: 
-                   return CAST_OK;
+                   result = CAST_OK;
+                   break;
 
             case CAST_ON_SELF:
-                   if (!pSpell->m_IsBugged) return _DoCastSpellIfCan(m_creature, pSpell->m_uiSpellEntry[currentDifficulty]);
-                   else return _BSWDoCast(m_uiSpellIdx, m_creature);
+                   result = _BSWCastOnTarget(m_creature, m_uiSpellIdx);
                    break;
 
             case CAST_ON_SUMMONS:
-                   if (!pTarget) return CAST_FAIL_OTHER;
-                   else return _DoCastSpellIfCan(pTarget, pSpell->m_uiSpellEntry[currentDifficulty]);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case CAST_ON_VICTIM:
                    pTarget = m_creature->getVictim();
-                   return _BSWCastOnTarget(pTarget, m_uiSpellIdx);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case CAST_ON_RANDOM:
-                   pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM,0);
-                   return _BSWCastOnTarget(pTarget, m_uiSpellIdx);
+                   pTarget = _doSelect(0, false, 60.0f);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case CAST_ON_BOTTOMAGGRO:
                    pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_BOTTOMAGGRO,0);
-                   return _BSWCastOnTarget(pTarget, m_uiSpellIdx);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case CAST_ON_TARGET:
-                   return _BSWCastOnTarget(pTarget, m_uiSpellIdx);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case APPLY_AURA_SELF:
                        if (_doAura(m_uiSpellIdx, m_creature, EFFECT_INDEX_0))
-                           return CAST_OK;
-                       else return CAST_FAIL_OTHER;
+                           result = CAST_OK;
+                       else result = CAST_FAIL_OTHER;
                    break;
 
             case APPLY_AURA_TARGET:
-                   if (!pTarget || !pTarget->IsInMap(m_creature)) return CAST_FAIL_OTHER;
-                       if (_doAura(m_uiSpellIdx, pTarget, EFFECT_INDEX_0))
-                           return CAST_OK;
-                       else return CAST_FAIL_OTHER;
+                   if (!pTarget || !pTarget->IsInMap(m_creature)) 
+                   {
+                       result = CAST_FAIL_OTHER;
+                       break;
+                   }
+                   if (_doAura(m_uiSpellIdx, pTarget, EFFECT_INDEX_0))
+                       result = CAST_OK;
+                   else result = CAST_FAIL_OTHER;
                    break;
 
             case SUMMON_NORMAL:
                    pSummon = _doSummon(m_uiSpellIdx, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 5000);
-                   if(pSummon) return CAST_OK;
-                          else return CAST_FAIL_OTHER;
+                   if(pSummon) result = CAST_OK;
+                       else result = CAST_FAIL_OTHER;
                    break;
 
             case SUMMON_TEMP:
                    pSummon = _doSummon(m_uiSpellIdx, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN,
                                         urand(pSpell->m_uiSpellTimerMin[currentDifficulty],pSpell->m_uiSpellTimerMax[currentDifficulty]));
-                   if(pSummon) return CAST_OK;
-                          else return CAST_FAIL_OTHER;
+                   if(pSummon) result = CAST_OK;
+                       else result = CAST_FAIL_OTHER;
                    break;
 
             case SUMMON_INSTANT:
                    pSummon = _doSummon(m_uiSpellIdx, TEMPSUMMON_MANUAL_DESPAWN,0);
-                   if(pSummon) return CAST_OK;
-                          else return CAST_FAIL_OTHER;
+                   if(pSummon) result = CAST_OK;
+                       else result = CAST_FAIL_OTHER;
                    break;
 
             case CAST_ON_ALLPLAYERS:
-            {
-                    Map::PlayerList const& pPlayers = pMap->GetPlayers();
-                    for (Map::PlayerList::const_iterator itr = pPlayers.begin(); itr != pPlayers.end(); ++itr)
-                    {
-                        pTarget = itr->getSource();
-                        if (pTarget && pTarget->isAlive() && pTarget->IsWithinDistInMap(m_creature, pSpell->LocData.x))
+                   {
+                       Map::PlayerList const& pPlayers = pMap->GetPlayers();
+                       for (Map::PlayerList::const_iterator itr = pPlayers.begin(); itr != pPlayers.end(); ++itr)
+                       {
+                           pTarget = itr->getSource();
+                           if (pTarget && pTarget->isAlive() && pTarget->IsWithinDistInMap(m_creature, pSpell->LocData.x))
                            {
                                if (!pSpell->m_IsBugged) 
                                    {
@@ -223,20 +232,20 @@ CanCastResult BSWScriptedAI::_BSWSpellSelector(uint8 m_uiSpellIdx, Unit* pTarget
                                    {
                                        _BSWDoCast(m_uiSpellIdx, pTarget);
                                    };
+                           result = CAST_OK;
                            };
-                     }
-                   return CAST_OK;
+                       }
+                   }
                    break;
-            }
 
             case CAST_ON_FRENDLY:
                    pTarget = doSelectLowHPFriendly(pSpell->LocData.x);
-                   return _BSWCastOnTarget(pTarget, m_uiSpellIdx);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case CAST_ON_FRENDLY_LOWHP:
                    pTarget = doSelectLowHPFriendly(pSpell->LocData.x);
-                   return _BSWCastOnTarget(pTarget, m_uiSpellIdx);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case CAST_ON_RANDOM_POINT:
@@ -248,31 +257,33 @@ CanCastResult BSWScriptedAI::_BSWSpellSelector(uint8 m_uiSpellIdx, Unit* pTarget
                                 if (pTarget->GetTypeId() == TYPEID_PLAYER)
                                      error_log("BSW: CAST_ON_RANDOM_POINT FAILED: player has invalid position. SpellID is %u",pSpell->m_uiSpellEntry[currentDifficulty]);
                                 else error_log("BSW: CAST_ON_RANDOM_POINT FAILED: creature has invalid position. SpellID is %u",pSpell->m_uiSpellEntry[currentDifficulty]);
-                                return CAST_FAIL_OTHER;
+                                result = CAST_FAIL_OTHER;
+                                break;
                             }
                          pTarget->GetPosition(fPosX, fPosY, fPosZ);
                          pTarget->GetRandomPoint(fPosX, fPosY, fPosZ, urand((uint32)pSpell->LocData.x, (uint32)pSpell->LocData.y), fPosX, fPosY, fPosZ);
                                 if ((int)fPosZ == 0)
                                 {
                                     error_log("BSW: CAST_ON_RANDOM_POINT FAILED: Positon Z is NULL. Strange bug");
-                                    return CAST_FAIL_OTHER;
+                                    result = CAST_FAIL_OTHER;
+                                    break;
                                  }
                          if (SpellEntry const *spell = (SpellEntry *)GetSpellStore()->LookupEntry(pSpell->m_uiSpellEntry[currentDifficulty]))
                            if (SpellRangeEntry const *pSpellRange = GetSpellRangeStore()->LookupEntry(spell->rangeIndex))
                               if (m_creature->GetDistance(fPosX, fPosY, fPosZ) <= pSpellRange->maxRange)
                                  {
                                      m_creature->CastSpell(fPosX, fPosY, fPosZ, pSpell->m_uiSpellEntry[currentDifficulty], false);
-                                     return CAST_OK;
+                                     result = CAST_OK;
+                                     break;
                                  };
-                                 return CAST_FAIL_TOO_FAR;
-                         } else  return CAST_FAIL_OTHER;
+                                 result = CAST_FAIL_TOO_FAR;
+                         } else  result = CAST_FAIL_OTHER;
                    break;
 
             case CAST_ON_RANDOM_PLAYER:
-                   if ( pSpell->LocData.x < 1 ) pTarget = doSelectRandomPlayer();
-                       else pTarget = doSelectRandomPlayerAtRange((float)pSpell->LocData.x);
-                   if (pTarget && pTarget->IsInMap(m_creature)) return _BSWCastOnTarget(pTarget, m_uiSpellIdx);
-                       else return CAST_FAIL_OTHER;
+                   if ( pSpell->LocData.x < 1 ) pTarget = _doSelect(0, false, 60.0f);
+                       else pTarget = _doSelect(0, false, (float)pSpell->LocData.x);
+                   result = _BSWCastOnTarget(pTarget, m_uiSpellIdx);
                    break;
 
             case APPLY_AURA_ALLPLAYERS:
@@ -282,21 +293,32 @@ CanCastResult BSWScriptedAI::_BSWSpellSelector(uint8 m_uiSpellIdx, Unit* pTarget
                        {
                            pTarget = itr->getSource();
                            if (pTarget && pTarget->isAlive() && pTarget->IsWithinDistInMap(m_creature, pSpell->LocData.x))
+                           {
                                _doAura(m_uiSpellIdx, pTarget, EFFECT_INDEX_0);
+                               result = CAST_OK;
+                           }
                        }
-                   return CAST_OK;
                    }
                    break;
 
             case SPELLTABLEPARM_NUMBER:
             default:
-                   return CAST_FAIL_OTHER;
+                   error_log("BSW: FAILED casting spell number %u type %u - type not exists",pSpell->m_uiSpellEntry[currentDifficulty], pSpell->m_CastTarget);
+                   result = CAST_FAIL_OTHER;
                    break;
             };
 
-    error_log("BSW: FAILED casting spell number %u type %u - type not exists",pSpell->m_uiSpellEntry[currentDifficulty], pSpell->m_CastTarget);
+        if (pSpell->textEntry && result == CAST_OK)
+        {
+            if (pTarget)
+                DoScriptText(pSpell->textEntry,m_creature,pTarget);
+            else
+                DoScriptText(pSpell->textEntry,m_creature);
+        };
 
-    return CAST_FAIL_OTHER;
+    debug_log("BSW: Casted spell number %u, result = %u",pSpell->m_uiSpellEntry[currentDifficulty], result);
+
+    return result;
 };
 
 CanCastResult BSWScriptedAI::_BSWCastOnTarget(Unit* pTarget, uint8 m_uiSpellIdx)
@@ -394,7 +416,9 @@ CanCastResult BSWScriptedAI::_BSWDoCast(uint8 m_uiSpellIdx, Unit* pTarget)
 
     pTarget->InterruptNonMeleeSpells(false);
 
-         return CAST_OK;
+    pTarget->CastSpell(pTarget, pSpell->m_uiSpellEntry[currentDifficulty], false);
+
+    return CAST_OK;
 };
 
 void BSWScriptedAI::_fillEmptyDataField()
@@ -483,27 +507,16 @@ bool BSWScriptedAI::_doRemove(uint8 m_uiSpellIdx, Unit* pTarget, uint8 index)
                 case CAST_ON_RANDOM_PLAYER:
                 case APPLY_AURA_ALLPLAYERS:
                 case CAST_ON_ALLPLAYERS:
-                     {
-                         Map::PlayerList const& pPlayers = pMap->GetPlayers();
-                         for (Map::PlayerList::const_iterator itr = pPlayers.begin(); itr != pPlayers.end(); ++itr)
-                         {
-                             pTarget = itr->getSource();
-                             if (_hasAura(m_uiSpellIdx,pTarget))
-                                 pTarget->RemoveAurasDueToSpell(pSpell->m_uiSpellEntry[currentDifficulty]);
-                          }
-                      return true;
-                      }
+                      _doRemoveFromAll(m_uiSpellIdx);
+                                 return true;
                       break;
+
                   default: 
                       debug_log("BSW: FAILED Removing effects of spell %u type %u - unsupported type",pSpell->m_uiSpellEntry[currentDifficulty], pSpell->m_CastTarget);
                       return false;
         }
 
-    if (!pTarget || !pTarget->IsInMap(m_creature) || !pTarget->isAlive())
-        {
-           error_log("BSW: FAILED removing effects of spell number %u - no target or target not in map or target is dead",pSpell->m_uiSpellEntry[currentDifficulty]);
-           return false;
-        }
+    if (!_hasAura(m_uiSpellIdx, pTarget)) return false;
 
         if (index == EFFECT_INDEX_ALL)
         {
@@ -753,5 +766,36 @@ Creature* BSWScriptedAI::doSelectNearestCreature(uint32 guid, float range)
     }
         else return NULL;
 }
+
+uint32 BSWScriptedAI::_getSpellData(uint8 m_uiSpellIdx)
+{
+    SpellTable* pSpell = &m_BossSpell[m_uiSpellIdx];
+
+    return pSpell->m_uiSpellData[currentDifficulty];
+};
+
+bool BSWScriptedAI::doCastAll(uint32 diff)
+{
+
+    uint8 succesfulCast = 0;
+
+    if (bossSpellCount() > 0)
+    {
+        for(uint8 i = 0; i < bossSpellCount(); ++i)
+            if (_QuerySpellPeriod(i, diff))
+                if (_BSWSpellSelector(i) == CAST_OK)
+                    ++succesfulCast;
+
+        if (succesfulCast)
+            debug_log("BSW: Casting all spells for creature %u done. Successful casted %u spells from %u.", m_creature->GetEntry(),succesfulCast,bossSpellCount());
+    }
+    else
+    {
+        error_log("BSW: Casting all spells for creature %u failed. Database has no spells.", m_creature->GetEntry());
+    }
+
+    return (succesfulCast >= 1) ? true : false;
+
+};
 
 #endif

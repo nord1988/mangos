@@ -222,6 +222,9 @@ static Locations SpawnLoc[]=
             case NPC_PRECIOUS:
                           m_uiPreciousGUID = pCreature->GetGUID();
                           break;
+            case NPC_TARGET_DUMMY:
+                          m_uidummyTargetGUID = pCreature->GetGUID();
+                          break;
             case NPC_FROSTMOURNE_TRIGGER:
                           m_uiFrostmourneTriggerGUID = pCreature->GetGUID(); break;
             case NPC_FROSTMOURNE_HOLDER:
@@ -387,6 +390,9 @@ static Locations SpawnLoc[]=
             case GO_FROSTY_EDGE: 
                                   m_uiFrostyEdgeGUID = pGo->GetGUID();
                                   break;
+            case GO_SNOW_EDGE: 
+                                  m_uiSnowEdgeGUID = pGo->GetGUID();
+                                  break;
             case GO_ARTHAS_PLATFORM: 
                                   m_uiArthasPlatformGUID = pGo->GetGUID();
                                   break;
@@ -451,7 +457,11 @@ static Locations SpawnLoc[]=
                                       else OpenDoor(m_uiOrangePlagueGUID);
                 if (uiData == DONE)  {
                                      OpenDoor(m_uiSDoorOrangeGUID);
-                                     if (m_auiEncounter[6] == DONE) OpenDoor(m_uiSDoorCollisionGUID);
+                                     if (m_auiEncounter[6] == DONE) 
+                                         {
+                                             OpenDoor(m_uiSDoorCollisionGUID);
+                                             OpenDoor(m_uiGreenPlagueGUID);
+                                         }
                                      }
                 break;
              case TYPE_ROTFACE:
@@ -460,7 +470,11 @@ static Locations SpawnLoc[]=
                                       else OpenDoor(m_uiGreenPlagueGUID);
                 if (uiData == DONE) {
                                      OpenDoor(m_uiSDoorGreenGUID);
-                                     if (m_auiEncounter[5] == DONE) OpenDoor(m_uiSDoorCollisionGUID);
+                                     if (m_auiEncounter[5] == DONE) 
+                                         {
+                                             OpenDoor(m_uiSDoorOrangeGUID);
+                                             OpenDoor(m_uiSDoorCollisionGUID);
+                                         }
                                      }
                 break;
              case TYPE_PUTRICIDE:
@@ -682,10 +696,12 @@ static Locations SpawnLoc[]=
             case GO_ICESHARD_4:               return m_uiIceShard4GUID;
             case GO_FROSTY_WIND:              return m_uiFrostyWindGUID;
             case GO_FROSTY_EDGE:              return m_uiFrostyEdgeGUID;
+            case GO_SNOW_EDGE:                return m_uiSnowEdgeGUID;
             case GO_ARTHAS_PLATFORM:          return m_uiArthasPlatformGUID;
             case GO_ARTHAS_PRECIPICE:         return m_uiArthasPrecipiceGUID;
             case NPC_FROSTMOURNE_TRIGGER:     return m_uiFrostmourneTriggerGUID;
             case NPC_FROSTMOURNE_HOLDER:      return m_uiFrostmourneHolderGUID;
+            case NPC_TARGET_DUMMY:            return m_uidummyTargetGUID;
         }
         return 0;
     }

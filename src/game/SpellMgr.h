@@ -34,6 +34,7 @@
 
 class Player;
 class Spell;
+struct CreatureInfo;
 struct SpellModifier;
 
 // only used in code
@@ -104,6 +105,8 @@ enum SpellSpecific
     SPELL_DRINK             = 21,
     SPELL_FOOD_AND_DRINK    = 22,
     SPELL_UA_IMMOLATE       = 23,                           // Unstable Affliction and Immolate
+    SPELL_BLEED_DEBUFF      = 24,                           // Mangle and Trauma
+    SPELL_MAGE_INTELLECT    = 25,
 };
 
 SpellSpecific GetSpellSpecific(uint32 spellId);
@@ -554,7 +557,9 @@ enum ProcFlags
     PROC_FLAG_ON_TRAP_ACTIVATION            = 0x00200000,   // 21 On trap activation
 
     PROC_FLAG_TAKEN_OFFHAND_HIT             = 0x00400000,   // 22 Taken off-hand melee attacks(not used)
-    PROC_FLAG_SUCCESSFUL_OFFHAND_HIT        = 0x00800000    // 23 Successful off-hand melee attacks
+    PROC_FLAG_SUCCESSFUL_OFFHAND_HIT        = 0x00800000,   // 23 Successful off-hand melee attacks
+
+    PROC_FLAG_ON_DEATH                      = 0x01000000    // 24 On caster's death
 };
 
 #define MELEE_BASED_TRIGGER_MASK (PROC_FLAG_SUCCESSFUL_MELEE_HIT        | \
@@ -967,8 +972,12 @@ class SpellMgr
         }
 
         bool IsRankSpellDueToSpell(SpellEntry const *spellInfo_1,uint32 spellId_2) const;
-        static bool canStackSpellRanks(SpellEntry const *spellInfo);
         bool IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) const;
+        bool canStackSpellRanksInSpellBook(SpellEntry const *spellInfo) const;
+        bool IsRankedSpellNonStackableInSpellBook(SpellEntry const *spellInfo) const
+        {
+            return !canStackSpellRanksInSpellBook(spellInfo) && GetSpellRank(spellInfo->Id) != 0;
+        }
 
         SpellEntry const* SelectAuraRankForLevel(SpellEntry const* spellInfo, uint32 Level) const;
 
@@ -1104,6 +1113,8 @@ class SpellMgr
         void LoadSpellAreas();
 
     private:
+        bool LoadPetDefaultSpells_helper(CreatureInfo const* cInfo, PetDefaultSpellsEntry& petDefSpells);
+
         SpellScriptTarget  mSpellScriptTarget;
         SpellChainMap      mSpellChains;
         SpellChainMapNext  mSpellChainsNext;

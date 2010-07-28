@@ -62,7 +62,7 @@ Map::~Map()
 void Map::LoadVMap(int gx,int gy)
 {
                                                             // x and y are swapped !!
-    int vmapLoadResult = VMAP::VMapFactory::createOrGetVMapManager()->loadMap((sWorld.GetDataPath()+ "vmaps").c_str(),  GetId(), gx,gy);
+    VMAP::VMAPLoadResult vmapLoadResult = VMAP::VMapFactory::createOrGetVMapManager()->loadMap((sWorld.GetDataPath()+ "vmaps").c_str(),  GetId(), gx,gy);
     switch(vmapLoadResult)
     {
         case VMAP::VMAP_LOAD_RESULT_OK:
@@ -752,7 +752,7 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
         DEBUG_FILTER_LOG(LOG_FILTER_PLAYER_MOVES, "Player %s relocation grid[%u,%u]cell[%u,%u]->grid[%u,%u]cell[%u,%u]", player->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 
         // update player position for group at taxi flight
-        if(player->GetGroup() && player->isInFlight())
+        if(player->GetGroup() && player->IsTaxiFlying())
             player->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_POSITION);
 
         NGridType* oldGrid = getNGrid(old_cell.GridX(), old_cell.GridY());
@@ -1012,7 +1012,7 @@ inline GridMap *Map::GetGrid(float x, float y)
     return GridMaps[gx][gy];
 }
 
-float Map::GetHeight(float x, float y, float z, bool pUseVmaps) const
+float Map::GetHeight(float x, float y, float z, bool pUseVmaps, float maxSearchDist) const
 {
     // find raw .map surface under Z coordinates
     float mapHeight;
@@ -1036,7 +1036,7 @@ float Map::GetHeight(float x, float y, float z, bool pUseVmaps) const
         if(vmgr->isHeightCalcEnabled())
         {
             // look from a bit higher pos to find the floor
-            vmapHeight = vmgr->getHeight(GetId(), x, y, z + 2.0f);
+            vmapHeight = vmgr->getHeight(GetId(), x, y, z + 2.0f, maxSearchDist);
         }
         else
             vmapHeight = VMAP_INVALID_HEIGHT_VALUE;

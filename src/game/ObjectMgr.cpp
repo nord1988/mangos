@@ -1293,6 +1293,111 @@ void ObjectMgr::RemoveCreatureFromGrid(uint32 guid, CreatureData const* data)
     }
 }
 
+uint32 ObjectMgr::AddGOData(uint32 entry, uint32 mapId, float x, float y, float z, float o, uint32 spawntimedelay, float rotation0, float rotation1, float rotation2, float rotation3)
+{
+    GameObjectInfo const* goinfo = GetGameObjectInfo(entry);
+    if (!goinfo)
+        return 0;
+
+    //Map* map = const_cast<Map*>(MapManager::Instance().CreateBaseMap(mapId));
+    Map * map = const_cast<Map*>(sMapMgr.CreateBaseMap(mapId));
+    if(!map)
+        return 0;
+
+    uint32 guid = GenerateLowGuid(HIGHGUID_GAMEOBJECT);
+    GameObjectData& data = NewGOData(guid);
+    data.id             = entry;
+    data.mapid          = mapId;
+    data.posX           = x;
+    data.posY           = y;
+    data.posZ           = z;
+    data.orientation    = o;
+    data.rotation0      = rotation0;
+    data.rotation1      = rotation1;
+    data.rotation2      = rotation2;
+    data.rotation3      = rotation3;
+    data.spawntimesecs  = spawntimedelay;
+    data.animprogress   = 100;
+    data.spawnMask      = 1;
+    data.go_state       = GO_STATE_READY;
+    data.phaseMask      = PHASEMASK_NORMAL;
+    data.artKit         = goinfo->type == GAMEOBJECT_TYPE_CAPTURE_POINT ? 21 : 0;
+    data.dbData = false;
+
+    AddGameobjectToGrid(guid, &data);
+
+    // Spawn if necessary (loaded grids only)
+    // We use spawn coords to spawn
+    if(!map->Instanceable() && map->IsLoaded(x, y))
+    {
+        GameObject *go = new GameObject;
+        if (!go->LoadFromDB(guid, map))
+        {
+            sLog.outError("AddGOData: cannot add gameobject entry %u to map", entry);
+            delete go;
+            return 0;
+        }
+        map->Add(go);
+    }
+
+    sLog.outDebug("AddGOData: dbguid %u entry %u map %u x %f y %f z %f o %f", guid, entry, mapId, x, y, z, o);
+
+    return guid;
+}
+
+uint32 ObjectMgr::AddCreData(uint32 entry, uint32 team, uint32 mapId, float x, float y, float z, float o, uint32 spawntimedelay)
+{
+    CreatureInfo const *cInfo = GetCreatureTemplate(entry);
+    if(!cInfo)
+        return 0;
+
+    uint32 level = cInfo->minlevel == cInfo->maxlevel ? cInfo->minlevel : urand(cInfo->minlevel, cInfo->maxlevel); // Only used for extracting creature base stats
+    //CreatureBaseStats const* stats = objmgr.GetCreatureBaseStats(level, cInfo->unit_class);
+
+    uint32 guid = GenerateLowGuid(HIGHGUID_UNIT);
+    CreatureData& data = NewOrExistCreatureData(guid);
+    data.id = entry;
+    data.mapid = mapId;
+    data.displayid = 0;
+    data.equipmentId = cInfo->equipmentId;
+    data.posX = x;
+    data.posY = y;
+    data.posZ = z;
+    data.orientation = o;
+    data.spawntimesecs = spawntimedelay;
+    data.spawndist = 0;
+    data.currentwaypoint = 0;
+    data.curhealth = 1;
+    data.curmana = 1;
+    data.is_dead = false;
+    data.movementType = cInfo->MovementType;
+    data.spawnMask = 1;
+    data.phaseMask = PHASEMASK_NORMAL;
+    data.dbData = false;
+
+    AddCreatureToGrid(guid, &data);
+
+    // Spawn if necessary (loaded grids only)
+    //if(Map* map = const_cast<Map*>(MapManager::Instance().CreateBaseMap(mapId)))
+    if(Map * map = const_cast<Map*>(sMapMgr.CreateBaseMap(mapId)))
+    {
+        // We use spawn coords to spawn
+        if(!map->Instanceable() && !map->IsRemovalGrid(x, y))
+        {
+            Creature* creature = new Creature;
+            if(!creature->LoadFromDB(guid, map))
+            {
+                sLog.outError("AddCreature: cannot add creature entry %u to map", entry);
+                delete creature;
+                return 0;
+            }
+            map->Add(creature);
+        }
+    }
+
+    return guid;
+}
+
 void ObjectMgr::LoadGameobjects()
 {
     uint32 count = 0;
@@ -1380,8 +1485,8 @@ void ObjectMgr::LoadGameobjects()
             continue;
         }
 
-        if (data.spawnMask & ~spawnMasks[data.mapid])
-            sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u Entry: %u) that have wrong spawn mask %u including not supported difficulty modes for map (Id: %u), skip", guid, data.id, data.spawnMask, data.mapid);
+        /*if (data.spawnMask & ~spawnMasks[data.mapid])
+            sLog.outErrorDb("Table `gameobject` have gameobject (GUID: %u Entry: %u) that have wrong spawn mask %u including not supported difficulty modes for map (Id: %u), skip", guid, data.id, data.spawnMask, data.mapid);*/
 
         if (data.spawntimesecs == 0 && gInfo->IsDespawnAtAction())
         {
@@ -1807,6 +1912,25 @@ void ObjectMgr::LoadItemPrototypes()
         {
             sLog.outErrorDb("Item (Entry: %u) has wrong Quality value (%u)",i,proto->Quality);
             const_cast<ItemPrototype*>(proto)->Quality = ITEM_QUALITY_NORMAL;
+        }
+
+        if (proto->Flags2 & ITEM_FLAGS2_HORDE_ONLY)
+        {
+            if (FactionEntry const* faction = sFactionStore.LookupEntry(HORDE))
+                if ((proto->AllowableRace & faction->BaseRepRaceMask[0]) == 0)
+                    sLog.outErrorDb("Item (Entry: %u) have in `AllowableRace` races (%u) only not compatible with ITEM_FLAGS2_HORDE_ONLY (%u) in Flags field, item any way will can't be equipped or use by this races.",
+                        i, proto->AllowableRace, ITEM_FLAGS2_HORDE_ONLY);
+
+            if (proto->Flags2 & ITEM_FLAGS2_ALLIANCE_ONLY)
+                sLog.outErrorDb("Item (Entry: %u) have in `Flags2` flags ITEM_FLAGS2_ALLIANCE_ONLY (%u) and ITEM_FLAGS2_HORDE_ONLY (%u) in Flags field, this is wrong combination.",
+                    i, ITEM_FLAGS2_ALLIANCE_ONLY, ITEM_FLAGS2_HORDE_ONLY);
+        }
+        else if (proto->Flags2 & ITEM_FLAGS2_ALLIANCE_ONLY)
+        {
+            if (FactionEntry const* faction = sFactionStore.LookupEntry(ALLIANCE))
+                if ((proto->AllowableRace & faction->BaseRepRaceMask[0]) == 0)
+                    sLog.outErrorDb("Item (Entry: %u) have in `AllowableRace` races (%u) only not compatible with ITEM_FLAGS2_ALLIANCE_ONLY (%u) in Flags field, item any way will can't be equipped or use by this races.",
+                        i, proto->AllowableRace, ITEM_FLAGS2_ALLIANCE_ONLY);
         }
 
         if(proto->BuyCount <= 0)
@@ -5583,6 +5707,53 @@ bool ObjectMgr::AddGraveYardLink(uint32 id, uint32 zoneId, uint32 team, bool inD
     return true;
 }
 
+void ObjectMgr::RemoveGraveYardLink(uint32 id, uint32 zoneId, uint32 team, bool inDB)
+{
+    GraveYardMap::iterator graveLow  = mGraveYardMap.lower_bound(zoneId);
+    GraveYardMap::iterator graveUp   = mGraveYardMap.upper_bound(zoneId);
+    if(graveLow==graveUp)
+    {
+        //sLog.outErrorDb("Table `game_graveyard_zone` incomplete: Zone %u Team %u does not have a linked graveyard.",zoneId,team);
+        return;
+    }
+
+    bool found = false;
+
+    GraveYardMap::iterator itr;
+
+    for (itr = graveLow; itr != graveUp; ++itr)
+    {
+        GraveYardData & data = itr->second;
+
+        // skip not matching safezone id
+        if(data.safeLocId != id)
+            continue;
+
+        // skip enemy faction graveyard at same map (normal area, city, or battleground)
+        // team == 0 case can be at call from .neargrave
+        if(data.team != 0 && team != 0 && data.team != team)
+            continue;
+
+        found = true;
+        break;
+    }
+
+    // no match, return
+    if(!found)
+        return;
+
+    // remove from links
+    mGraveYardMap.erase(itr);
+
+    // remove link from DB
+    if(inDB)
+    {
+        WorldDatabase.PExecute("DELETE FROM game_graveyard_zone WHERE id = '%u' AND ghost_zone = '%u' AND faction = '%u'",id,zoneId,team);
+    }
+
+    return;
+}
+
 void ObjectMgr::LoadAreaTriggerTeleports()
 {
     mAreaTriggers.clear();                                  // need for reload case
@@ -5839,7 +6010,7 @@ void ObjectMgr::SetHighestGuids()
     // Cleanup other tables from not existed guids (>=m_hiItemGuid)
     CharacterDatabase.PExecute("DELETE FROM character_inventory WHERE item >= '%u'", m_ItemGuids.GetNextAfterMaxUsed());
     CharacterDatabase.PExecute("DELETE FROM mail_items WHERE item_guid >= '%u'", m_ItemGuids.GetNextAfterMaxUsed());
-    CharacterDatabase.PExecute("DELETE FROM auctionhouse WHERE itemguid >= '%u'", m_ItemGuids.GetNextAfterMaxUsed());
+    CharacterDatabase.PExecute("DELETE FROM auction WHERE itemguid >= '%u'", m_ItemGuids.GetNextAfterMaxUsed());
     CharacterDatabase.PExecute("DELETE FROM guild_bank_item WHERE item_guid >= '%u'", m_ItemGuids.GetNextAfterMaxUsed());
 
     result = WorldDatabase.Query("SELECT MAX(guid) FROM gameobject" );
@@ -5849,7 +6020,7 @@ void ObjectMgr::SetHighestGuids()
         delete result;
     }
 
-    result = CharacterDatabase.Query("SELECT MAX(id) FROM auctionhouse" );
+    result = CharacterDatabase.Query("SELECT MAX(id) FROM auction" );
     if( result )
     {
         m_AuctionIds.Set((*result)[0].GetUInt32()+1);
@@ -6408,6 +6579,77 @@ void ObjectMgr::LoadCorpses()
     sLog.outString( ">> Loaded %u corpses", count );
 }
 
+void ObjectMgr::LoadReputationRewardRate()
+{
+    m_RepRewardRateMap.clear();                             // for reload case
+
+    uint32 count = 0;
+    QueryResult *result = WorldDatabase.Query("SELECT faction, quest_rate, creature_rate, spell_rate FROM reputation_reward_rate");
+
+    if (!result)
+    {
+        barGoLink bar(1);
+
+        bar.step();
+
+        sLog.outString();
+        sLog.outErrorDb(">> Loaded `reputation_reward_rate`, table is empty!");
+        return;
+    }
+
+    barGoLink bar((int)result->GetRowCount());
+
+    do
+    {
+        bar.step();
+
+        Field *fields = result->Fetch();
+
+        uint32 factionId        = fields[0].GetUInt32();
+
+        RepRewardRate repRate;
+
+        repRate.quest_rate      = fields[1].GetFloat();
+        repRate.creature_rate   = fields[2].GetFloat();
+        repRate.spell_rate      = fields[3].GetFloat();
+
+        FactionEntry const *factionEntry = sFactionStore.LookupEntry(factionId);
+        if (!factionEntry)
+        {
+            sLog.outErrorDb("Faction (faction.dbc) %u does not exist but is used in `reputation_reward_rate`", factionId);
+            continue;
+        }
+
+        if (repRate.quest_rate < 0.0f)
+        {
+            sLog.outErrorDb("Table reputation_reward_rate has quest_rate with invalid rate %f, skipping data for faction %u", repRate.quest_rate, factionId);
+            continue;
+        }
+
+        if (repRate.creature_rate < 0.0f)
+        {
+            sLog.outErrorDb("Table reputation_reward_rate has creature_rate with invalid rate %f, skipping data for faction %u", repRate.creature_rate, factionId);
+            continue;
+        }
+
+        if (repRate.spell_rate < 0.0f)
+        {
+            sLog.outErrorDb("Table reputation_reward_rate has spell_rate with invalid rate %f, skipping data for faction %u", repRate.spell_rate, factionId);
+            continue;
+        }
+
+        m_RepRewardRateMap[factionId] = repRate;
+
+        ++count;
+    }
+    while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString(">> Loaded %u reputation_reward_rate", count);
+}
+
 void ObjectMgr::LoadReputationOnKill()
 {
     uint32 count = 0;
@@ -6484,6 +6726,126 @@ void ObjectMgr::LoadReputationOnKill()
 
     sLog.outString();
     sLog.outString(">> Loaded %u creature award reputation definitions", count);
+}
+
+void ObjectMgr::LoadReputationSpilloverTemplate()
+{
+    m_RepSpilloverTemplateMap.clear();                      // for reload case
+
+    uint32 count = 0;
+    QueryResult *result = WorldDatabase.Query("SELECT faction, faction1, rate_1, rank_1, faction2, rate_2, rank_2, faction3, rate_3, rank_3, faction4, rate_4, rank_4 FROM reputation_spillover_template");
+
+    if (!result)
+    {
+        barGoLink bar(1);
+
+        bar.step();
+
+        sLog.outString();
+        sLog.outErrorDb(">> Loaded `reputation_spillover_template`, table is empty!");
+        return;
+    }
+
+    barGoLink bar((int)result->GetRowCount());
+
+    do
+    {
+        bar.step();
+
+        Field *fields = result->Fetch();
+
+        uint32 factionId                = fields[0].GetUInt32();
+
+        RepSpilloverTemplate repTemplate;
+
+        repTemplate.faction[0]          = fields[1].GetUInt32();
+        repTemplate.faction_rate[0]     = fields[2].GetFloat();
+        repTemplate.faction_rank[0]     = fields[3].GetUInt32();
+        repTemplate.faction[1]          = fields[4].GetUInt32();
+        repTemplate.faction_rate[1]     = fields[5].GetFloat();
+        repTemplate.faction_rank[1]     = fields[6].GetUInt32();
+        repTemplate.faction[2]          = fields[7].GetUInt32();
+        repTemplate.faction_rate[2]     = fields[8].GetFloat();
+        repTemplate.faction_rank[2]     = fields[9].GetUInt32();
+        repTemplate.faction[3]          = fields[10].GetUInt32();
+        repTemplate.faction_rate[3]     = fields[11].GetFloat();
+        repTemplate.faction_rank[3]     = fields[12].GetUInt32();
+
+        FactionEntry const *factionEntry = sFactionStore.LookupEntry(factionId);
+
+        if (!factionEntry)
+        {
+            sLog.outErrorDb("Faction (faction.dbc) %u does not exist but is used in `reputation_spillover_template`", factionId);
+            continue;
+        }
+
+        if (factionEntry->team == 0)
+        {
+            sLog.outErrorDb("Faction (faction.dbc) %u in `reputation_spillover_template` does not belong to any team, skipping", factionId);
+            continue;
+        }
+
+        for (uint32 i = 0; i < MAX_SPILLOVER_FACTIONS; ++i)
+        {
+            if (repTemplate.faction[i])
+            {
+                FactionEntry const *factionSpillover = sFactionStore.LookupEntry(repTemplate.faction[i]);
+
+                if (!factionSpillover)
+                {
+                    sLog.outErrorDb("Spillover faction (faction.dbc) %u does not exist but is used in `reputation_spillover_template` for faction %u, skipping", repTemplate.faction[i], factionId);
+                    continue;
+                }
+
+                if (factionSpillover->reputationListID < 0)
+                {
+                    sLog.outErrorDb("Spillover faction (faction.dbc) %u for faction %u in `reputation_spillover_template` can not be listed for client, and then useless, skipping", repTemplate.faction[i], factionId);
+                    continue;
+                }
+
+                if (repTemplate.faction_rank[i] >= MAX_REPUTATION_RANK)
+                {
+                    sLog.outErrorDb("Rank %u used in `reputation_spillover_template` for spillover faction %u is not valid, skipping", repTemplate.faction_rank[i], repTemplate.faction[i]);
+                    continue;
+                }
+            }
+        }
+
+        FactionEntry const *factionEntry0 = sFactionStore.LookupEntry(repTemplate.faction[0]);
+        if (repTemplate.faction[0] && !factionEntry0)
+        {
+            sLog.outErrorDb("Faction (faction.dbc) %u does not exist but is used in `reputation_spillover_template`", repTemplate.faction[0]);
+            continue;
+        }
+        FactionEntry const *factionEntry1 = sFactionStore.LookupEntry(repTemplate.faction[1]);
+        if (repTemplate.faction[1] && !factionEntry1)
+        {
+            sLog.outErrorDb("Faction (faction.dbc) %u does not exist but is used in `reputation_spillover_template`", repTemplate.faction[1]);
+            continue;
+        }
+        FactionEntry const *factionEntry2 = sFactionStore.LookupEntry(repTemplate.faction[2]);
+        if (repTemplate.faction[2] && !factionEntry2)
+        {
+            sLog.outErrorDb("Faction (faction.dbc) %u does not exist but is used in `reputation_spillover_template`", repTemplate.faction[2]);
+            continue;
+        }
+        FactionEntry const *factionEntry3 = sFactionStore.LookupEntry(repTemplate.faction[3]);
+        if (repTemplate.faction[3] && !factionEntry3)
+        {
+            sLog.outErrorDb("Faction (faction.dbc) %u does not exist but is used in `reputation_spillover_template`", repTemplate.faction[3]);
+            continue;
+        }
+
+        m_RepSpilloverTemplateMap[factionId] = repTemplate;
+
+        ++count;
+    }
+    while (result->NextRow());
+
+    delete result;
+
+    sLog.outString();
+    sLog.outString(">> Loaded %u reputation_spillover_template", count);
 }
 
 void ObjectMgr::LoadPointsOfInterest()
@@ -7590,7 +7952,26 @@ bool PlayerCondition::Meets(Player const * player) const
             if (Quest const* quest = sObjectMgr.GetQuestTemplate(value1))
                 return player->CanTakeQuest(quest, false);
             else
-                false;
+                return false;
+        }
+        case CONDITION_ACHIEVEMENT:
+        {
+            switch(value2)
+            {
+                case 0: return player->GetAchievementMgr().HasAchievement(value1);
+                case 1: return !player->GetAchievementMgr().HasAchievement(value1);
+            }
+            return false;
+        }
+        case CONDITION_ACHIEVEMENT_REALM:
+        {
+            AchievementEntry const* ach = sAchievementStore.LookupEntry(value1);
+            switch(value2)
+            {
+                case 0: return sAchievementMgr.IsRealmCompleted(ach);
+                case 1: return !sAchievementMgr.IsRealmCompleted(ach);
+            }
+            return false;
         }
         default:
             return false;
@@ -7815,6 +8196,23 @@ bool PlayerCondition::IsValid(ConditionType condition, uint32 value1, uint32 val
             if (!mapEntry || !mapEntry->IsDungeon())
             {
                 sLog.outErrorDb("Instance script condition (%u) has not existed map id %u as first arg, skipped", condition, value1);
+                return false;
+            }
+
+            break;
+        }
+        case CONDITION_ACHIEVEMENT:
+        case CONDITION_ACHIEVEMENT_REALM:
+        {
+            if (!sAchievementStore.LookupEntry(value1))
+            {
+                sLog.outErrorDb("Achievement condition (%u) requires to have non existing achievement (Id: %d), skipped", condition, value1);
+                return false;
+            }
+
+            if (value2 > 1)
+            {
+                sLog.outErrorDb("Achievement condition (%u) has invalid argument %u (must be 0..1), skipped", condition, value2);
                 return false;
             }
 
@@ -8199,7 +8597,7 @@ void ObjectMgr::LoadVendors()
         uint32 item_id      = fields[1].GetUInt32();
         uint32 maxcount     = fields[2].GetUInt32();
         uint32 incrtime     = fields[3].GetUInt32();
-        int32  ExtendedCost = fields[4].GetInt32();
+        uint32 ExtendedCost = fields[4].GetUInt32();
 
         if(!IsVendorItemValid(entry,item_id,maxcount,incrtime,ExtendedCost,NULL,&skip_vendors))
             continue;
@@ -8477,12 +8875,12 @@ void ObjectMgr::LoadGossipMenuItems()
     sLog.outString(">> Loaded %u gossip_menu_option entries", count);
 }
 
-void ObjectMgr::AddVendorItem( uint32 entry,uint32 item, uint32 maxcount, uint32 incrtime, int32 extendedcost )
+void ObjectMgr::AddVendorItem( uint32 entry,uint32 item, uint32 maxcount, uint32 incrtime, uint32 extendedcost )
 {
     VendorItemData& vList = m_mCacheVendorItemMap[entry];
     vList.AddItem(item,maxcount,incrtime,extendedcost);
 
-    WorldDatabase.PExecuteLog("INSERT INTO npc_vendor (entry,item,maxcount,incrtime,extendedcost) VALUES('%u','%u','%u','%u','%i')",entry, item, maxcount,incrtime,extendedcost);
+    WorldDatabase.PExecuteLog("INSERT INTO npc_vendor (entry,item,maxcount,incrtime,extendedcost) VALUES('%u','%u','%u','%u','%u')",entry, item, maxcount,incrtime,extendedcost);
 }
 
 bool ObjectMgr::RemoveVendorItem( uint32 entry,uint32 item )
@@ -8498,7 +8896,7 @@ bool ObjectMgr::RemoveVendorItem( uint32 entry,uint32 item )
     return true;
 }
 
-bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, uint32 item_id, uint32 maxcount, uint32 incrtime, int32 ExtendedCost, Player* pl, std::set<uint32>* skip_vendors ) const
+bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, uint32 item_id, uint32 maxcount, uint32 incrtime, uint32 ExtendedCost, Player* pl, std::set<uint32>* skip_vendors ) const
 {
     CreatureInfo const* cInfo = GetCreatureTemplate(vendor_entry);
     if(!cInfo)
@@ -8530,18 +8928,18 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, uint32 item_id, uint32 m
         if(pl)
             ChatHandler(pl).PSendSysMessage(LANG_ITEM_NOT_FOUND, item_id);
         else
-            sLog.outErrorDb("Table `npc_vendor` for vendor (Entry: %u) contain nonexistent item (%u), ignoring",vendor_entry,item_id);
+            sLog.outErrorDb("Table `npc_vendor` for vendor (Entry: %u) contain nonexistent item (%u), ignoring",
+                vendor_entry, item_id);
         return false;
     }
 
-    uint32 extCostId = std::abs(ExtendedCost);              // negative exclude for vendor price money part
-
-    if(extCostId && !sItemExtendedCostStore.LookupEntry(extCostId))
+    if(ExtendedCost && !sItemExtendedCostStore.LookupEntry(ExtendedCost))
     {
         if(pl)
-            ChatHandler(pl).PSendSysMessage(LANG_EXTENDED_COST_NOT_EXIST,extCostId);
+            ChatHandler(pl).PSendSysMessage(LANG_EXTENDED_COST_NOT_EXIST,ExtendedCost);
         else
-            sLog.outErrorDb("Table `npc_vendor` contain item (Entry: %u) with wrong ExtendedCost (%u) for vendor (%u), ignoring",item_id,extCostId,vendor_entry);
+            sLog.outErrorDb("Table `npc_vendor` contain item (Entry: %u) with wrong ExtendedCost (%u) for vendor (%u), ignoring",
+                item_id, ExtendedCost, vendor_entry);
         return false;
     }
 
@@ -8550,7 +8948,8 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, uint32 item_id, uint32 m
         if(pl)
             ChatHandler(pl).PSendSysMessage("MaxCount!=0 (%u) but IncrTime==0", maxcount);
         else
-            sLog.outErrorDb( "Table `npc_vendor` has `maxcount` (%u) for item %u of vendor (Entry: %u) but `incrtime`=0, ignoring", maxcount, item_id, vendor_entry);
+            sLog.outErrorDb( "Table `npc_vendor` has `maxcount` (%u) for item %u of vendor (Entry: %u) but `incrtime`=0, ignoring",
+                maxcount, item_id, vendor_entry);
         return false;
     }
     else if(maxcount==0 && incrtime > 0)
@@ -8558,7 +8957,8 @@ bool ObjectMgr::IsVendorItemValid( uint32 vendor_entry, uint32 item_id, uint32 m
         if(pl)
             ChatHandler(pl).PSendSysMessage("MaxCount==0 but IncrTime<>=0");
         else
-            sLog.outErrorDb( "Table `npc_vendor` has `maxcount`=0 for item %u of vendor (Entry: %u) but `incrtime`<>0, ignoring", item_id, vendor_entry);
+            sLog.outErrorDb( "Table `npc_vendor` has `maxcount`=0 for item %u of vendor (Entry: %u) but `incrtime`<>0, ignoring",
+                item_id, vendor_entry);
         return false;
     }
 

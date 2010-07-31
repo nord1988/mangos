@@ -276,7 +276,7 @@ class BattleGroundScore
         uint32 BonusHonor;
         uint32 DamageDone;
         uint32 HealingDone;
-		uint32 DamageTaken;
+        uint32 DamageTaken;
         uint32 HealingTaken;
 };
 

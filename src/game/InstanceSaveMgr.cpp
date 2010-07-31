@@ -204,6 +204,7 @@ void InstanceResetScheduler::LoadResetTimes()
 
             // update the reset time if the hour in the configs changes
             uint64 newresettime = (oldresettime / DAY) * DAY + diff;
+            newresettime = newresettime >= today + 8*DAY ? today + 6*DAY + diff : newresettime;
             if(oldresettime != newresettime)
                 CharacterDatabase.DirectPExecute("UPDATE instance_reset SET resettime = '"UI64FMTD"' WHERE mapid = '%u' AND difficulty = '%u'", newresettime, mapid, difficulty);
 

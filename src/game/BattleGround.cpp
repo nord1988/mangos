@@ -723,7 +723,7 @@ void BattleGround::EndBattleGround(uint32 winner)
             DEBUG_LOG("--- Winner rating: %u, Loser rating: %u, Winner change: %u, Losser change: %u ---", winner_rating, loser_rating, winner_change, loser_change);
             SetArenaTeamRatingChangeForTeam(winner, winner_change);
             SetArenaTeamRatingChangeForTeam(GetOtherTeam(winner), loser_change);
-			/* WoWArmory */
+            /* WoWArmory */
             uint32 maxChartID;
             QueryResult *result = CharacterDatabase.PQuery("SELECT MAX(gameid) FROM armory_game_chart");
             if(!result)
@@ -768,7 +768,6 @@ void BattleGround::EndBattleGround(uint32 winner)
             SetArenaTeamRatingChangeForTeam(HORDE, 0);
         }
     }
-
     for(BattleGroundPlayerMap::iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
     {
         uint32 team = itr->second.Team;
@@ -1425,7 +1424,7 @@ void BattleGround::UpdatePlayerScore(Player *Source, uint32 type, uint32 value)
         case SCORE_HEALING_DONE:                            // Healing Done
             itr->second->HealingDone += value;
             break;
-		/* WoWArmory (arena game chart) */
+        /* WoWArmory (arena game chart) */
         case SCORE_DAMAGE_TAKEN:
             itr->second->DamageTaken += value;              // Damage Taken
             break;

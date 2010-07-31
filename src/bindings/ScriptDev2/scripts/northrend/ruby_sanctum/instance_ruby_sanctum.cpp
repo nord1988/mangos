@@ -113,6 +113,10 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
         m_uiHalionFireWallMGUID = 0;
         m_uiHalionFireWallLGUID = 0;
         m_uiBaltharusTargetGUID = 0;
+        m_auiOrbDirection = 0;
+        m_auiOrbNState = NOT_STARTED;
+        m_auiOrbSState = NOT_STARTED;
+
     }
 
     bool IsEncounterInProgress() const
@@ -303,9 +307,6 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
             case NPC_HALION_TWILIGHT:           return m_uiHalion_tGUID;
             case NPC_XERESTRASZA:               return m_uiXerestraszaGUID;
             case NPC_BALTHARUS_TARGET:          return m_uiBaltharusTargetGUID;
-            case GO_HALION_FIRE_WALL_S:         return m_uiHalionFireWallSGUID;
-            case GO_HALION_FIRE_WALL_M:         return m_uiHalionFireWallMGUID;
-            case GO_HALION_FIRE_WALL_L:         return m_uiHalionFireWallLGUID;
 
             case GO_FLAME_WALLS: return m_uiFlameWallsGUID;
             case GO_FLAME_RING:  return m_uiFlameRingGUID;

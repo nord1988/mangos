@@ -290,13 +290,16 @@ void Object::BuildMovementUpdate(ByteBuffer * data, uint16 updateFlags) const
                         }
                     }
                 }
+
+                if (unit->GetVehicle())
+                   unit->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
             }
             break;
             case TYPEID_PLAYER:
             {
                 Player *player = ((Player*)unit);
 
-                if(player->GetTransport())
+                if (player->GetTransport() || player->GetVehicle())
                     player->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
                 else
                     player->m_movementInfo.RemoveMovementFlag(MOVEFLAG_ONTRANSPORT);
@@ -525,9 +528,9 @@ void Object::BuildMovementUpdate(ByteBuffer * data, uint16 updateFlags) const
     }
 
     // 0x80
-    if(updateFlags & UPDATEFLAG_VEHICLE)                    // unused for now
+    if(updateFlags & UPDATEFLAG_VEHICLE)
     {
-        *data << uint32(((Vehicle*)this)->GetVehicleId());  // vehicle id
+        *data << uint32(((Unit*)this)->GetVehicleKit()->GetVehicleId());  // vehicle id
         *data << float(((WorldObject*)this)->GetOrientation());
     }
 
@@ -1669,6 +1672,8 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
 
     pCreature->Summon(spwtype, despwtime);
 
+    pCreature->SetOwnerGUID(GetGUID());
+
     if(GetTypeId()==TYPEID_UNIT && ((Creature*)this)->AI())
         ((Creature*)this)->AI()->JustSummoned(pCreature);
 
@@ -1690,6 +1695,8 @@ GameObject* WorldObject::SummonGameobject(uint32 id, float x, float y, float z, 
     }
 
     pGameObj->SetRespawnTime(despwtime/IN_MILLISECONDS);
+
+    pGameObj->SetOwnerGUID(GetGUID());
 
     map->Add(pGameObj);
 

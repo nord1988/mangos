@@ -967,8 +967,8 @@ Item* Item::CreateItem( uint32 item, uint32 count, Player const* player )
             count = pProto->GetMaxStackSize();
 
         ASSERT(count !=0 && "pProto->Stackable==0 but checked at loading already");
-
-		if (pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR) && player)
+        
+        if (pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR) && player)
         {
             /* WoWArmory Feed Log */
             std::ostringstream ss;

@@ -671,6 +671,12 @@ void ObjectMgr::LoadCreatureTemplates()
             }
         }
 
+        if (cInfo->powerType >= MAX_POWERS)
+        {
+            sLog.outErrorDb("Creature (Entry: %u) has invalid power type (%u)", cInfo->Entry, cInfo->powerType);
+            const_cast<CreatureInfo*>(cInfo)->powerType = POWER_MANA;
+        }
+
         // use below code for 0-checks for unit_class
         if (!cInfo->unit_class)
             ERROR_DB_STRICT_LOG("Creature (Entry: %u) not has proper unit_class(%u) for creature_template", cInfo->Entry, cInfo->unit_class);
@@ -730,6 +736,17 @@ void ObjectMgr::LoadCreatureTemplates()
             {
                 sLog.outErrorDb("Creature (Entry: %u) has non-existing Spell%d (%u), set to 0", cInfo->Entry, j+1,cInfo->spells[j]);
                 const_cast<CreatureInfo*>(cInfo)->spells[j] = 0;
+            }
+        }
+
+        if (cInfo->VehicleId)
+        {
+            VehicleEntry const* pVehicleEntry = sVehicleStore.LookupEntry(cInfo->VehicleId);
+
+            if (!pVehicleEntry)
+            {
+                sLog.outErrorDb("Creature (Entry: %u) has non-existing VehicleId (%u)", cInfo->Entry, cInfo->VehicleId);
+                const_cast<CreatureInfo*>(cInfo)->VehicleId = 0;
             }
         }
 
@@ -3292,8 +3309,8 @@ void ObjectMgr::LoadGuilds()
         "BankResetTimeTab0,BankRemSlotsTab0,BankResetTimeTab1,BankRemSlotsTab1,BankResetTimeTab2,BankRemSlotsTab2,"
     //   13                14               15                16               17                18
         "BankResetTimeTab3,BankRemSlotsTab3,BankResetTimeTab4,BankRemSlotsTab4,BankResetTimeTab5,BankRemSlotsTab5,"
-    //   19               20                21                22               23
-        "characters.name, characters.level, characters.class, characters.zone, characters.logout_time "
+    //   19               20                21                22               23                      24
+        "characters.name, characters.level, characters.class, characters.zone, characters.logout_time, characters.account "
         "FROM guild_member LEFT JOIN characters ON characters.guid = guild_member.guid ORDER BY guildid ASC");
 
     // load guild bank tab rights
@@ -7718,8 +7735,12 @@ const char *ObjectMgr::GetMangosString(int32 entry, int locale_idx) const
             return msl->Content[0].c_str();
     }
 
-    if(entry > 0)
+    if(entry > MIN_DB_SCRIPT_STRING_ID)
+        sLog.outErrorDb("Entry %i not found in `db_script_string` table.",entry);
+    else if(entry > 0)
         sLog.outErrorDb("Entry %i not found in `mangos_string` table.",entry);
+    else if(entry > MAX_CREATURE_AI_TEXT_STRING_ID)
+        sLog.outErrorDb("Entry %i not found in `creature_ai_texts` table.",entry);
     else
         sLog.outErrorDb("Mangos string entry %i not found in DB.",entry);
     return "<error>";

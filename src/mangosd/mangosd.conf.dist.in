@@ -361,7 +361,7 @@ CharLogFile = "Char.log"
 CharLogTimestamp = 0
 CharLogDump = 1
 GmLogFile = "GM.log"
-GmLogTimestamp = 1
+GmLogTimestamp = 0
 GmLogPerAccount = 1
 RaLogFile = ""
 LogColors = "13 7 11 9"
@@ -398,7 +398,7 @@ ChatLogRaidScreen = 0
 ChatLogBattleGroundScreen = 0
 
 # Lexics cutter parameters
-LexicsCutterEnable = 0
+LexicsCutterEnable = 1
 
 LexicsCutterInnormativeCut = 1
 LexicsCutterCutReplacement = &!@^%!^&*!!!
@@ -838,9 +838,9 @@ TimerBar.Breath.Max = 180
 TimerBar.Fire.GMLevel = 4
 TimerBar.Fire.Max = 1
 MaxPrimaryTradeSkill = 3
-MinPetitionSigns = 9
+MinPetitionSigns = 5
 MaxGroupXPDistance = 74
-MailDeliveryDelay = 120
+MailDeliveryDelay = 3600
 SkillChance.Prospecting = 0
 SkillChance.Milling = 0
 OffhandCheckAtTalentsReset = 0
@@ -1170,11 +1170,11 @@ Channel.SilentlyGMJoin = 0
 #
 ###################################################################################################################
 
-GM.LoginState            = 1
-GM.Visible               = 0
-GM.AcceptTickets         = 1
-GM.Chat                  = 1
-GM.WhisperingTo          = 0
+GM.LoginState            = 2
+GM.Visible               = 2
+GM.AcceptTickets         = 2
+GM.Chat                  = 2
+GM.WhisperingTo          = 2
 GM.InGMList.Level        = 3
 GM.InWhoList.Level       = 3
 GM.LogTrade              = 1
@@ -1210,7 +1210,7 @@ GM.AllowAchievementGain  = 1
 #    Visibility.Distance.Grey.Unit
 #        Visibility grey distance for creatures/players (fast changing objects)
 #        addition to appropriate object type Visibility.Distance.* use in case visibility removing to
-#        object (except corpse around distences) If � is distance and G is grey distance then object
+#        object (except corpse around distences) If D is distance and G is grey distance then object
 #        make visible if distance to it <= D but make non visible if distance > D+G
 #        Default: 1 (yard)
 #
@@ -1520,7 +1520,7 @@ BattleGround.PremadeGroupWaitForMatch = 1800000
 ###################################################################################################################
 
 Arena.MaxRatingDifference = 150
-Arena.RatingDiscardTimer = 6000000
+Arena.RatingDiscardTimer = 600000
 Arena.AutoDistributePoints = 0
 Arena.AutoDistributeInterval = 7
 Arena.QueueAnnouncer.Join = 1

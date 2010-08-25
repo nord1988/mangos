@@ -50,7 +50,6 @@ void GuardAI::MoveInLineOfSight(Unit *u)
         {
             //Need add code to let guard support player
             AttackStart(u);
-            u->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
         }
     }
 }
@@ -71,7 +70,7 @@ void GuardAI::EnterEvadeMode()
         return;
     }
 
-    Unit* victim = ObjectAccessor::GetUnit(*m_creature, i_victimGuid );
+    Unit* victim = m_creature->GetMap()->GetUnit(i_victimGuid);
 
     if (!victim)
     {

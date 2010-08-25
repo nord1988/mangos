@@ -39,6 +39,7 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
     uint32 m_auiEncounter[MAX_ENCOUNTERS+1];
 
     uint32 m_auiEventTimer;
+    uint32 m_auiHalionEvent;
 
     uint32 m_auiOrbDirection;
     uint32 m_auiOrbNState;
@@ -46,6 +47,7 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
 
     uint64 m_uiHalion_pGUID;
     uint64 m_uiHalion_tGUID;
+    uint64 m_uiHalionControlGUID;
     uint64 m_uiRagefireGUID;
     uint64 m_uiZarithianGUID;
     uint64 m_uiBaltharusGUID;
@@ -58,7 +60,6 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
     uint64 m_uiOrbCarrierGUID;
 
     //object GUID
-    uint64 m_uiHalionPortal0GUID;
     uint64 m_uiHalionPortal1GUID;
     uint64 m_uiHalionPortal2GUID;
     uint64 m_uiHalionPortal3GUID;
@@ -104,7 +105,6 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
         m_uiZarithianGUID = 0;
         m_uiBaltharusGUID = 0;
         m_uiCloneGUID = 0;
-        m_uiHalionPortal0GUID = 0;
         m_uiHalionPortal1GUID = 0;
         m_uiHalionPortal2GUID = 0;
         m_uiHalionPortal3GUID = 0;
@@ -114,6 +114,9 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
         m_uiHalionFireWallLGUID = 0;
         m_uiBaltharusTargetGUID = 0;
         m_auiOrbDirection = 0;
+        m_uiOrbNGUID = 0;
+        m_uiOrbSGUID = 0;
+        m_uiOrbFocusGUID = 0;
         m_auiOrbNState = NOT_STARTED;
         m_auiOrbSState = NOT_STARTED;
 
@@ -128,10 +131,30 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
         return false;
     }
 
-    void OnPlayerEnter(Player *m_player)
+    void UpdateWorldState(bool command, uint32 value)
     {
-        m_player->SendUpdateWorldState(UPDATE_STATE_UI_SHOW,1);
-        m_player->SendUpdateWorldState(UPDATE_STATE_UI_COUNT,1);
+       Map::PlayerList const &players = instance->GetPlayers();
+
+       if (command)
+       {
+       for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
+              if(Player* pPlayer = i->getSource())
+                    if(pPlayer->isAlive())
+                    {
+                        pPlayer->SendUpdateWorldState(UPDATE_STATE_UI_SHOW,0);
+                        if (pPlayer->HasAura(74807))
+                            pPlayer->SendUpdateWorldState(UPDATE_STATE_UI_COUNT_T, 100 - value);
+                        else pPlayer->SendUpdateWorldState(UPDATE_STATE_UI_COUNT_R, value);
+                        pPlayer->SendUpdateWorldState(UPDATE_STATE_UI_SHOW,1);
+                    }
+       }
+       else
+       {
+       for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
+              if(Player* pPlayer = i->getSource())
+                    if(pPlayer->isAlive())
+                        pPlayer->SendUpdateWorldState(UPDATE_STATE_UI_SHOW,0);
+       }
     }
 
     void OpenAllDoors()
@@ -149,6 +172,7 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
         {
             case NPC_HALION_REAL:  m_uiHalion_pGUID = pCreature->GetGUID(); break;
             case NPC_HALION_TWILIGHT:   m_uiHalion_tGUID = pCreature->GetGUID();  break;
+            case NPC_HALION_CONTROL:    m_uiHalionControlGUID = pCreature->GetGUID();  break;
             case NPC_RAGEFIRE:     m_uiRagefireGUID = pCreature->GetGUID();  break;
             case NPC_ZARITHIAN:    m_uiZarithianGUID = pCreature->GetGUID(); break;
             case NPC_BALTHARUS:    m_uiBaltharusGUID = pCreature->GetGUID(); break;
@@ -169,7 +193,6 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
             case GO_HALION_PORTAL_1:  m_uiHalionPortal1GUID = pGo->GetGUID();  break;
             case GO_HALION_PORTAL_2:  m_uiHalionPortal2GUID = pGo->GetGUID();  break;
             case GO_HALION_PORTAL_3:  m_uiHalionPortal3GUID = pGo->GetGUID();  break;
-
             case GO_FLAME_WALLS:      m_uiFlameWallsGUID = pGo->GetGUID();     break;
             case GO_FLAME_RING:       m_uiFlameRingGUID = pGo->GetGUID();      break;
             case GO_FIRE_FIELD:       m_uiFireFieldGUID = pGo->GetGUID();      break;
@@ -220,15 +243,26 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
                                     break;
             case TYPE_HALION:       m_auiEncounter[uiType] = uiData;
                                     if (uiData == IN_PROGRESS)
-                                          CloseDoor(m_uiFlameRingGUID);
+                                    {
+                                        CloseDoor(m_uiFlameRingGUID);
+                                    }
                                     else
+                                    {
                                           OpenDoor(m_uiFlameRingGUID);
+                                    }
                                     break;
+            case TYPE_HALION_EVENT: m_auiHalionEvent  = uiData; uiData = NOT_STARTED; break;
             case TYPE_EVENT_TIMER:  m_auiEventTimer = uiData; uiData = NOT_STARTED; break;
 
             case DATA_ORB_DIRECTION:        m_auiOrbDirection = uiData; uiData = NOT_STARTED; break;
             case DATA_ORB_N:                m_auiOrbNState = uiData; uiData = NOT_STARTED; break;
             case DATA_ORB_S:                m_auiOrbSState = uiData; uiData = NOT_STARTED; break;
+            case TYPE_COUNTER:
+                                   if (uiData == 0)
+                                       UpdateWorldState(false,0);
+                                   else UpdateWorldState(true,uiData);
+                                   uiData = NOT_STARTED;
+                                   break;
         }
 
         if (uiData == DONE)
@@ -263,6 +297,8 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
             case TYPE_HALION:        return m_auiEncounter[uiType];
 
             case TYPE_EVENT:         return m_auiEncounter[uiType];
+
+            case TYPE_HALION_EVENT:  return m_auiHalionEvent;
 
             case TYPE_EVENT_TIMER:   return m_auiEventTimer;
             case TYPE_EVENT_NPC:     switch (m_auiEncounter[TYPE_EVENT])
@@ -305,12 +341,17 @@ struct MANGOS_DLL_DECL instance_ruby_sanctum : public ScriptedInstance
             case NPC_RAGEFIRE:   return m_uiRagefireGUID;
             case NPC_HALION_REAL:               return m_uiHalion_pGUID;
             case NPC_HALION_TWILIGHT:           return m_uiHalion_tGUID;
+            case NPC_HALION_CONTROL:   return m_uiHalionControlGUID;
             case NPC_XERESTRASZA:               return m_uiXerestraszaGUID;
             case NPC_BALTHARUS_TARGET:          return m_uiBaltharusTargetGUID;
 
             case GO_FLAME_WALLS: return m_uiFlameWallsGUID;
             case GO_FLAME_RING:  return m_uiFlameRingGUID;
             case GO_FIRE_FIELD:  return m_uiFireFieldGUID;
+
+            case GO_HALION_PORTAL_1: return m_uiHalionPortal1GUID;
+            case GO_HALION_PORTAL_2: return m_uiHalionPortal2GUID;
+            case GO_HALION_PORTAL_3: return m_uiHalionPortal3GUID;
 
             case NPC_SHADOW_PULSAR_N:    return m_uiOrbNGUID;
             case NPC_SHADOW_PULSAR_S:    return m_uiOrbSGUID;

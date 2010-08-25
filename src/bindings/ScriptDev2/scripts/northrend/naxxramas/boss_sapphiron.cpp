@@ -210,7 +210,7 @@ struct MANGOS_DLL_DECL boss_sapphironAI : public ScriptedAI
                     phase = 2;
                     m_creature->InterruptNonMeleeSpells(false);
                     m_creature->StopMoving();
-                    m_creature->HandleEmoteCommand(EMOTE_ONESHOT_LIFTOFF);
+                    m_creature->HandleEmote(EMOTE_ONESHOT_LIFTOFF);
                     m_creature->GetMotionMaster()->Clear(false);
                     m_creature->GetMotionMaster()->MoveIdle();
                     m_creature->MonsterMove(SAPPHIRON_X, SAPPHIRON_Y, SAPPHIRON_Z + 20, 1);
@@ -248,7 +248,7 @@ struct MANGOS_DLL_DECL boss_sapphironAI : public ScriptedAI
                     ThreatList const& tList = m_creature->getThreatManager().getThreatList();
                     for (ThreatList::const_iterator iter = tList.begin();iter != tList.end(); ++iter)
                     {
-                        Unit* pUnit = Unit::GetUnit((*m_creature), (*iter)->getUnitGuid());
+                        Unit* pUnit = m_creature->GetMap()->GetUnit((*iter)->getUnitGuid());
                         if (pUnit && (pUnit->GetTypeId() == TYPEID_PLAYER) && pUnit->isAlive())
                         {
                             if (!pUnit->HasAura(SPELL_ICEBOLT))
@@ -280,15 +280,15 @@ struct MANGOS_DLL_DECL boss_sapphironAI : public ScriptedAI
                 if (land_Timer < diff)
                 {
                     phase = 1;
-                    m_creature->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
-                    //m_creature->SetHover(false);
-                    //m_creature->GetMotionMaster()->Clear(false);
-                    //m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                    m_creature->HandleEmote(EMOTE_ONESHOT_LAND);
+                    m_creature->SetHover(false);
+                    m_creature->GetMotionMaster()->Clear(false);
+                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
 
                     ThreatList const& tList = m_creature->getThreatManager().getThreatList();
                     for (ThreatList::const_iterator iter = tList.begin();iter != tList.end(); ++iter)
                     {
-                        Unit* pUnit = Unit::GetUnit((*m_creature), (*iter)->getUnitGuid());
+                        Unit* pUnit = m_creature->GetMap()->GetUnit((*iter)->getUnitGuid());
                         if (pUnit && (pUnit->GetTypeId() == TYPEID_PLAYER))
                             pUnit->ApplySpellImmune(0, IMMUNITY_SCHOOL, SPELL_SCHOOL_MASK_FROST, false);
                     }

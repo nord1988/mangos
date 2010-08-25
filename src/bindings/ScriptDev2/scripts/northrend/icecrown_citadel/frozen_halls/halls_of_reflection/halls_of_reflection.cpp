@@ -507,13 +507,13 @@ struct MANGOS_DLL_DECL npc_jaina_and_sylvana_HRintroAI : public ScriptedAI
             case 33:
                 m_uiFalricGUID = m_pInstance->GetData64(NPC_FALRIC);
                 m_uiMarwynGUID = m_pInstance->GetData64(NPC_MARWYN);
-                if(Creature* Falric = ((Creature*)Unit::GetUnit((*m_creature), m_uiFalricGUID)))
+                if(Creature* Falric = (m_creature->GetMap()->GetCreature( m_uiFalricGUID)))
                 { 
                    Falric->SetVisibility(VISIBILITY_ON);
                    Falric->CastSpell(Falric, SPELL_BOSS_SPAWN_AURA, false);
                    Falric->GetMotionMaster()->MovePoint(0, 5283.309f, 2031.173f, 709.319f);
                 }
-                if(Creature* Marwyn = ((Creature*)Unit::GetUnit((*m_creature), m_uiMarwynGUID)))
+                if(Creature* Marwyn = (m_creature->GetMap()->GetCreature( m_uiMarwynGUID)))
                 {
                    Marwyn->SetVisibility(VISIBILITY_ON);
                    Marwyn->CastSpell(Marwyn, SPELL_BOSS_SPAWN_AURA, false);
@@ -524,16 +524,16 @@ struct MANGOS_DLL_DECL npc_jaina_and_sylvana_HRintroAI : public ScriptedAI
                 JumpNextStep(600);
                 break;
             case 34:
-                if(Creature* Falric = ((Creature*)Unit::GetUnit((*m_creature), m_uiFalricGUID)))
+                if(Creature* Falric = (m_creature->GetMap()->GetCreature( m_uiFalricGUID)))
                    DoScriptText(SAY_FALRIC_INTRO, Falric);
-                if(Creature* Marwyn = ((Creature*)Unit::GetUnit((*m_creature), m_uiMarwynGUID)))
+                if(Creature* Marwyn = (m_creature->GetMap()->GetCreature( m_uiMarwynGUID)))
                    DoScriptText(SAY_MARWYN_INTRO, Marwyn);
                 JumpNextStep(3000);
                 break;
             case 35:
                 if(GameObject* pGate = m_pInstance->instance->GetGameObject(m_uiMainGateGUID))
                    pGate->SetGoState(GO_STATE_ACTIVE);
-                if(Creature* Falric = ((Creature*)Unit::GetUnit((*m_creature), m_uiFalricGUID)))
+                if(Creature* Falric = (m_creature->GetMap()->GetCreature( m_uiFalricGUID)))
                    DoScriptText(SAY_FALRIC_INTRO2, Falric);
                 m_pInstance->SetData(TYPE_FALRIC, SPECIAL);
                 JumpNextStep(4000);
@@ -608,12 +608,12 @@ bool GossipHello_npc_jaina_and_sylvana_HRintro(Player* pPlayer, Creature* pCreat
     switch(pCreature->GetEntry())
     {
        case NPC_JAINA:
-            pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GetScriptText(-1594536, pPlayer), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
-            pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GetScriptText(-1594537, pPlayer), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+2);
+            pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT, -3594536, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+            pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT, -3594537, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+2);
             break;
        case NPC_SYLVANA: 
-            pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GetScriptText(-1594538, pPlayer), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
-            pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GetScriptText(-1594539, pPlayer), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+2);
+            pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT, -3594538, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+            pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT, -3594539, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+2);
             break;
     }
 
@@ -906,7 +906,7 @@ struct MANGOS_DLL_DECL npc_jaina_and_sylvana_HRextroAI : public npc_escortAI
            case 0:
               m_creature->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
               m_uiLichKingGUID = m_pInstance->GetData64(BOSS_LICH_KING);
-              pLichKing = ((Creature*)Unit::GetUnit((*m_creature), m_uiLichKingGUID));
+              pLichKing = m_creature->GetMap()->GetCreature( m_uiLichKingGUID);
               JumpNextStep(100);
               break;
            case 1:
@@ -1153,7 +1153,7 @@ bool GossipHello_npc_jaina_and_sylvana_HRextro(Player* pPlayer, Creature* pCreat
     if(pCreature->isQuestGiver())
        pPlayer->PrepareQuestMenu( pCreature->GetGUID());
 
-    pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GetScriptText(-1594540, pPlayer), GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
+    pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT, -3594540, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF+1);
 
     pPlayer->SEND_GOSSIP_MENU(pPlayer->GetGossipTextId(pCreature), pCreature->GetGUID());
 

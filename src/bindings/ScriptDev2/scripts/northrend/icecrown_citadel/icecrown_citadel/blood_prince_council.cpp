@@ -62,6 +62,9 @@ enum BossSpells
         SPELL_SHADOW_RESONANCE_AURA             = 71822,
         NPC_DARK_NUCLEUS                        = 38369,
 
+        // Blood orb
+        SPELL_BLOOD_ORB_STATE_VISUAL            = 72100,
+
 };
 
 struct MANGOS_DLL_DECL boss_valanar_iccAI : public BSWScriptedAI
@@ -133,8 +136,8 @@ struct MANGOS_DLL_DECL boss_valanar_iccAI : public BSWScriptedAI
     void Aggro(Unit* pWho)
     {
         if (!m_pInstance) return;
-        pBrother1 = (Creature*)Unit::GetUnit((*m_creature),m_pInstance->GetData64(NPC_TALDARAM));
-        pBrother2 = (Creature*)Unit::GetUnit((*m_creature),m_pInstance->GetData64(NPC_KELESETH));
+        pBrother1 = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_TALDARAM));
+        pBrother2 = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_KELESETH));
         if (pBrother1 && !pBrother1->isAlive()) pBrother1->Respawn();
         if (pBrother2 && !pBrother2->isAlive()) pBrother2->Respawn();
         if (pBrother1) pBrother1->SetInCombatWithZone();
@@ -256,8 +259,8 @@ struct MANGOS_DLL_DECL boss_taldaram_iccAI : public BSWScriptedAI
     void Aggro(Unit* pWho)
     {
         if (!m_pInstance) return;
-        pBrother1 = (Creature*)Unit::GetUnit((*m_creature),m_pInstance->GetData64(NPC_VALANAR));
-        pBrother2 = (Creature*)Unit::GetUnit((*m_creature),m_pInstance->GetData64(NPC_KELESETH));
+        pBrother1 = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_VALANAR));
+        pBrother2 = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_KELESETH));
         if (pBrother1 && !pBrother1->isAlive()) pBrother1->Respawn();
         if (pBrother2 && !pBrother2->isAlive()) pBrother2->Respawn();
         if (pBrother1) pBrother1->SetInCombatWithZone();
@@ -384,8 +387,8 @@ struct MANGOS_DLL_DECL boss_keleseth_iccAI : public BSWScriptedAI
     void Aggro(Unit* pWho)
     {
         if (!m_pInstance) return;
-        pBrother1 = (Creature*)Unit::GetUnit((*m_creature),m_pInstance->GetData64(NPC_TALDARAM));
-        pBrother2 = (Creature*)Unit::GetUnit((*m_creature),m_pInstance->GetData64(NPC_VALANAR));
+        pBrother1 = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_TALDARAM));
+        pBrother2 = m_creature->GetMap()->GetCreature(m_pInstance->GetData64(NPC_VALANAR));
         if (pBrother1 && !pBrother1->isAlive()) pBrother1->Respawn();
         if (pBrother2 && !pBrother2->isAlive()) pBrother2->Respawn();
         if (pBrother1) pBrother1->SetInCombatWithZone();
@@ -608,11 +611,11 @@ struct MANGOS_DLL_DECL mob_kinetic_bombAI : public ScriptedAI
     float fPosX0, fPosY0, fPosZ0;
     float fPosX1, fPosY1, fPosZ1;
     bool finita;
-    Unit *owner;
+    Creature *owner;
 
     void Reset()
     {
-        owner = Unit::GetUnit((*m_creature),m_creature->GetCreatorGUID());
+        owner = m_creature->GetMap()->GetCreature(m_creature->GetCreatorGUID());
 
         m_creature->SetRespawnDelay(7*DAY);
         m_creature->SetInCombatWithZone();

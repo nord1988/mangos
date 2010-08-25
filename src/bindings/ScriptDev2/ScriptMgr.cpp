@@ -44,6 +44,7 @@ void LoadDatabase()
         pSystemMgr.LoadVersion();
         pSystemMgr.LoadScriptTexts();
         pSystemMgr.LoadScriptTextsCustom();
+        pSystemMgr.LoadScriptGossipTexts();
         pSystemMgr.LoadScriptWaypoints();
     }
     else
@@ -201,33 +202,6 @@ void DoScriptText(int32 iTextEntry, WorldObject* pSource, Unit* pTarget)
             pSource->MonsterYellToZone(iTextEntry, pData->uiLanguage, pTarget ? pTarget->GetGUID() : 0);
             break;
     }
-}
-
-char const* GetScriptText(int32 iTextEntry, Player* pPlayer)
-{
-    if (iTextEntry >= 0)
-    {
-        error_log("SD2: GetScriptText attempts to process text entry %i, but text entry must be negative.", iTextEntry);
-        return NULL;
-    }
-
-    const StringTextData* pData = pSystemMgr.GetTextData(iTextEntry);
-
-    if (!pData)
-    {
-        error_log("SD2: GetScriptText could not find text entry %i.", iTextEntry);
-        return NULL;
-    }
-
-    debug_log("SD2: GetScriptText: text entry=%i, Sound=%u, Type=%u, Language=%u, Emote=%u",
-        iTextEntry, pData->uiSoundId, pData->uiType, pData->uiLanguage, pData->uiEmote);
-
-    int currentLocaleIdx;
-
-    if (pPlayer && pPlayer->IsInWorld()) currentLocaleIdx = pPlayer->GetSession()->GetSessionDbLocaleIndex();
-        else currentLocaleIdx = LOCALE_enUS;
-
-    return sObjectMgr.GetMangosString(iTextEntry,currentLocaleIdx);
 }
 
 //*********************************
@@ -495,7 +469,7 @@ bool GOChooseReward(Player* pPlayer, GameObject* pGo, const Quest* pQuest, uint3
 }
 
 MANGOS_DLL_EXPORT
-bool AreaTrigger(Player* pPlayer, AreaTriggerEntry * atEntry)
+bool AreaTrigger(Player* pPlayer, AreaTriggerEntry const* atEntry)
 {
     Script *tmpscript = m_scripts[GetAreaTriggerScriptId(atEntry->id)];
 
@@ -503,6 +477,17 @@ bool AreaTrigger(Player* pPlayer, AreaTriggerEntry * atEntry)
         return false;
 
     return tmpscript->pAreaTrigger(pPlayer, atEntry);
+}
+
+MANGOS_DLL_EXPORT
+bool ProcessEventId(uint32 uiEventId, Object* pSource, Object* pTarget, bool bIsStart)
+{
+    Script *tmpscript = m_scripts[GetEventIdScriptId(uiEventId)];
+    if (!tmpscript || !tmpscript->pProcessEventId)
+        return false;
+
+    // bIsStart may be false, when event is from taxi node events (arrival=false, departure=true)
+    return tmpscript->pProcessEventId(uiEventId, pSource, pTarget, bIsStart);
 }
 
 MANGOS_DLL_EXPORT

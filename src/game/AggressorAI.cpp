@@ -56,7 +56,6 @@ AggressorAI::MoveInLineOfSight(Unit *u)
             if(!m_creature->getVictim())
             {
                 AttackStart(u);
-                u->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
             }
             else if(sMapStore.LookupEntry(m_creature->GetMapId())->IsDungeon())
             {
@@ -78,7 +77,7 @@ void AggressorAI::EnterEvadeMode()
         return;
     }
 
-    Unit* victim = ObjectAccessor::GetUnit(*m_creature, i_victimGuid );
+    Unit* victim = m_creature->GetMap()->GetUnit(i_victimGuid);
 
     if (!victim)
     {

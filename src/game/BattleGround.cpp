@@ -723,7 +723,7 @@ void BattleGround::EndBattleGround(uint32 winner)
             DEBUG_LOG("--- Winner rating: %u, Loser rating: %u, Winner change: %u, Losser change: %u ---", winner_rating, loser_rating, winner_change, loser_change);
             SetArenaTeamRatingChangeForTeam(winner, winner_change);
             SetArenaTeamRatingChangeForTeam(GetOtherTeam(winner), loser_change);
-            /* WoWArmory */
+			/** World of Warcraft Armory **/
             uint32 maxChartID;
             QueryResult *result = CharacterDatabase.PQuery("SELECT MAX(gameid) FROM armory_game_chart");
             if(!result)
@@ -760,7 +760,7 @@ void BattleGround::EndBattleGround(uint32 winner)
                 sql_query << "INSERT INTO armory_game_chart VALUES ('" << gameID << "', '" << resultTeamID << "', '" << plr->GetGUID() << "', '" << changeType << "', '" << winner_change << "', '" << resultRating << "', '" << itr->second->DamageDone << "', '" << itr->second->Deaths << "', '" << itr->second->HealingDone << "', '" << itr->second->DamageTaken << "', '" << itr->second->HealingTaken << "', '" << itr->second->KillingBlows << "', '" << m_MapId << "', '" << m_StartTime << "', '" << m_EndTime << "')";
                 CharacterDatabase.Execute(sql_query.str().c_str());
             }
-            //* WoWArmory *//
+            /** World of Warcraft Armory **/
         }
         else
         {
@@ -768,6 +768,7 @@ void BattleGround::EndBattleGround(uint32 winner)
             SetArenaTeamRatingChangeForTeam(HORDE, 0);
         }
     }
+
     for(BattleGroundPlayerMap::iterator itr = m_Players.begin(); itr != m_Players.end(); ++itr)
     {
         uint32 team = itr->second.Team;
@@ -816,7 +817,7 @@ void BattleGround::EndBattleGround(uint32 winner)
             if (team == winner)
             {
                 // update achievement BEFORE personal rating update
-                ArenaTeamMember* member = winner_arena_team->GetMember(plr->GetGUID());
+                ArenaTeamMember* member = winner_arena_team->GetMember(plr->GetObjectGuid());
                 if (member)
                     plr->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_RATED_ARENA, member->personal_rating);
 
@@ -1219,7 +1220,7 @@ void BattleGround::AddPlayer(Player *plr)
 
     // score struct must be created in inherited class
 
-    uint64 guid = plr->GetGUID();
+    ObjectGuid guid = plr->GetObjectGuid();
     uint32 team = plr->GetBGTeam();
 
     BattleGroundPlayer bp;
@@ -1227,7 +1228,7 @@ void BattleGround::AddPlayer(Player *plr)
     bp.Team = team;
 
     // Add to list/maps
-    m_Players[guid] = bp;
+    m_Players[guid.GetRawValue()] = bp;
 
     UpdatePlayersCountByTeam(team, false);                  // +1 player
 
@@ -1285,16 +1286,9 @@ void BattleGround::AddPlayer(Player *plr)
 }
 
 /* this method adds player to his team's bg group, or sets his correct group if player is already in bg group */
-void BattleGround::AddOrSetPlayerToCorrectBgGroup(Player *plr, uint64 plr_guid, uint32 team)
+void BattleGround::AddOrSetPlayerToCorrectBgGroup(Player *plr, ObjectGuid plr_guid, uint32 team)
 {
-    Group* group = GetBgRaid(team);
-    if(!group)                                      // first player joined
-    {
-        group = new Group;
-        SetBgRaid(team, group);
-        group->Create(plr_guid, plr->GetName());
-    }
-    else                                            // raid already exist
+    if (Group* group = GetBgRaid(team))                     // raid already exist
     {
         if (group->IsMember(plr_guid))
         {
@@ -1308,6 +1302,12 @@ void BattleGround::AddOrSetPlayerToCorrectBgGroup(Player *plr, uint64 plr_guid, 
                 if (originalGroup->IsLeader(plr_guid))
                     group->ChangeLeader(plr_guid);
         }
+    }
+    else                                                    // first player joined
+    {
+        group = new Group;
+        SetBgRaid(team, group);
+        group->Create(plr_guid, plr->GetName());
     }
 }
 
@@ -1424,13 +1424,14 @@ void BattleGround::UpdatePlayerScore(Player *Source, uint32 type, uint32 value)
         case SCORE_HEALING_DONE:                            // Healing Done
             itr->second->HealingDone += value;
             break;
-        /* WoWArmory (arena game chart) */
+		/** World of Warcraft Armory **/
         case SCORE_DAMAGE_TAKEN:
             itr->second->DamageTaken += value;              // Damage Taken
             break;
         case SCORE_HEALING_TAKEN:
             itr->second->HealingTaken += value;             // Healing Taken
             break;
+        /** World of Warcraft Armory **/
         default:
             sLog.outError("BattleGround: Unknown player score type %u", type);
             break;

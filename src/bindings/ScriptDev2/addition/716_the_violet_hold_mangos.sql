@@ -1,13 +1,13 @@
 /* VIOLET HOLD */
-UPDATE `instance_template` SET `script`='instance_violet_hold' WHERE `map`=608;
+UPDATE `instance_template` SET `ScriptName`='instance_violet_hold' WHERE `map`=608;
 UPDATE `creature_template` SET `ScriptName`='npc_sinclari', `npcflag`=1,`minhealth`=50400, `maxhealth`=50400 WHERE `entry`='30658'; -- 64
 UPDATE `creature_template` SET `ScriptName`='npc_azure_saboteur' WHERE `entry`='31079';
 UPDATE `creature_template` SET `ScriptName`='boss_cyanigosa' WHERE `entry`='31134';
 UPDATE `creature_template` SET `ScriptName`='boss_erekem' WHERE `entry`='29315';
 UPDATE `creature_template` SET `ScriptName`='mob_erekem_guard' WHERE `entry`='29395';
 UPDATE `creature_template` SET `ScriptName`='boss_ichoron' WHERE `entry`='29313';
-UPDATE `creature_template` SET `ScriptName`='mob_ichor_globule',`modelid_A`=5492, `modelid_H`=5492 WHERE `entry`='29321';
-UPDATE `creature_template` SET `modelid_A`=5492, `modelid_H`=5492 WHERE `entry`='31515'; -- heroic
+UPDATE `creature_template` SET `ScriptName`='mob_ichor_globule',`modelid_1`=5492, `modelid_3`=5492 WHERE `entry`='29321';
+UPDATE `creature_template` SET `modelid_1`=5492, `modelid_3`=5492 WHERE `entry`='31515'; -- heroic
 UPDATE `creature_template` SET `ScriptName`='boss_lavanthor' WHERE `entry`='29312';
 UPDATE `creature_template` SET `ScriptName`='boss_moragg' WHERE `entry`='29316';
 UPDATE `creature_template` SET `ScriptName`='boss_xevozz' WHERE `entry`='29266';

@@ -1080,6 +1080,10 @@
 					Name="uldaman"
 					>
 					<File
+						RelativePath="..\scripts\eastern_kingdoms\uldaman\boss_archaedas.cpp"
+						>
+					</File>
+					<File
 						RelativePath="..\scripts\eastern_kingdoms\uldaman\boss_ironaya.cpp"
 						>
 					</File>
@@ -1457,6 +1461,14 @@
 					>
 					<File
 						RelativePath="..\scripts\kalimdor\onyxias_lair\boss_onyxia.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\scripts\kalimdor\onyxias_lair\instance_onyxias_lair.cpp"
+						>
+					</File>
+					<File
+						RelativePath="..\scripts\kalimdor\onyxias_lair\onyxias_lair.h"
 						>
 					</File>
 				</Filter>
@@ -2163,7 +2175,7 @@
 							>
 						</File>
 						<File
-							RelativePath="..\scripts\northrend\ulduar\ulduar\ulduar.h"
+							RelativePath="..\scripts\northrend\ulduar\ulduar\def_ulduar.h"
 							>
 						</File>
 					</Filter>
@@ -2474,10 +2486,6 @@
 					<Filter
 						Name="slave_pens"
 						>
-						<File
-							RelativePath="..\scripts\outland\coilfang_reservoir\slave_pens\boss_rokmar.cpp"
-							>
-						</File>
 					</Filter>
 					<Filter
 						Name="steam_vault"
@@ -2846,11 +2854,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\include\sc_boss_spell_worker.cpp"
+				RelativePath="..\base\BSW_ai.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\include\sc_boss_spell_worker.h"
+				RelativePath="..\base\BSW_ai.h"
+				>
+			</File>
+			<File
+				RelativePath="..\base\BSW_iinstance.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\base\BSW_instance.h"
 				>
 			</File>
 		</Filter>

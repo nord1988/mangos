@@ -4,7 +4,7 @@
 
 #ifndef DEF_RUBY_SANCTUM_H
 #define DEF_RUBY_SANCTUM_H
-#include "sc_boss_spell_worker.h"
+#include "BSW_ai.h"
 
 enum
 {
@@ -17,13 +17,15 @@ enum
     TYPE_ZARITHIAN                 = 4,
     TYPE_HALION                    = 5,
 
-    TYPE_HALION_LOCK               = 6, //lock inside the fire ring
+    TYPE_COUNTER                   = 6, // for WorldUpdateState
+    TYPE_HALION_EVENT              = 7,
 
     TYPE_EVENT_TIMER               = 50,
     TYPE_EVENT_NPC                 = 51,
 
     NPC_HALION_REAL                = 39863, // Halion Physical Realm NPC
     NPC_HALION_TWILIGHT            = 40142, // Halion Twilight Realm NPC
+    NPC_HALION_CONTROL             = 40146,
 
     NPC_BALTHARUS                  = 39751,
     NPC_CLONE                      = 39899,
@@ -50,9 +52,6 @@ enum
     GO_FLAME_WALLS                 = 203006,
     GO_FLAME_RING                  = 203007,
 
-    DATA_HEALTH_HALION_P           = 203,
-    DATA_HEALTH_HALION_T           = 204,
-
     DATA_EVENT_TIMER               = 101,
     DATA_EVENT                     = 102,
 
@@ -64,8 +63,9 @@ enum
 
 enum uiWorldStates
 {
-    UPDATE_STATE_UI_SHOW            = 5049,
-    UPDATE_STATE_UI_COUNT           = 5050,
+    UPDATE_STATE_UI_COUNT_R          = 5049,
+    UPDATE_STATE_UI_COUNT_T          = 5050,
+    UPDATE_STATE_UI_SHOW             = 5051,
 };
 
 #endif

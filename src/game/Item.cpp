@@ -351,30 +351,30 @@ void Item::SaveToDB()
     SetState(ITEM_UNCHANGED);
 }
 
-bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, QueryResult *result)
+bool Item::LoadFromDB(uint32 guidLow, uint64 owner_guid, QueryResult *result)
 {
     // create item before any checks for store correct guid
     // and allow use "FSetState(ITEM_REMOVED); SaveToDB();" for deleting item from DB
-    Object::_Create(guid, 0, HIGHGUID_ITEM);
+    Object::_Create(guidLow, 0, HIGHGUID_ITEM);
 
     bool delete_result = false;
     if(!result)
     {
-        result = CharacterDatabase.PQuery("SELECT data FROM item_instance WHERE guid = '%u'", guid);
+        result = CharacterDatabase.PQuery("SELECT data FROM item_instance WHERE guid = '%u'", guidLow);
         delete_result = true;
     }
 
     if (!result)
     {
-        sLog.outError("Item (GUID: %u owner: %u) not found in table `item_instance`, can't load. ",guid,GUID_LOPART(owner_guid));
+        sLog.outError("Item (GUID: %u owner: %u) not found in table `item_instance`, can't load. ", guidLow, GUID_LOPART(owner_guid));
         return false;
     }
 
     Field *fields = result->Fetch();
 
-    if(!LoadValues(fields[0].GetString()))
+    if (!LoadValues(fields[0].GetString()))
     {
-        sLog.outError("Item #%d have broken data in `data` field. Can't be loaded.",guid);
+        sLog.outError("Item #%d have broken data in `data` field. Can't be loaded.", guidLow);
         if (delete_result) delete result;
         return false;
     }
@@ -382,14 +382,15 @@ bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, QueryResult *result)
     bool need_save = false;                                 // need explicit save data at load fixes
 
     // overwrite possible wrong/corrupted guid
-    uint64 new_item_guid = MAKE_NEW_GUID(guid,0, HIGHGUID_ITEM);
-    if(GetUInt64Value(OBJECT_FIELD_GUID) != new_item_guid)
+    ObjectGuid new_item_guid = ObjectGuid(HIGHGUID_ITEM, guidLow);
+    if (GetGuidValue(OBJECT_FIELD_GUID) != new_item_guid)
     {
-        SetUInt64Value(OBJECT_FIELD_GUID, MAKE_NEW_GUID(guid,0, HIGHGUID_ITEM));
+        SetGuidValue(OBJECT_FIELD_GUID, new_item_guid);
         need_save = true;
     }
 
-    if (delete_result) delete result;
+    if (delete_result)
+        delete result;
 
     ItemPrototype const* proto = GetProto();
     if(!proto)
@@ -439,7 +440,7 @@ bool Item::LoadFromDB(uint32 guid, uint64 owner_guid, QueryResult *result)
         ss << "UPDATE item_instance SET data = '";
         for(uint16 i = 0; i < m_valuesCount; ++i )
             ss << GetUInt32Value(i) << " ";
-        ss << "', owner_guid = '" << GUID_LOPART(GetOwnerGUID()) << "' WHERE guid = '" << guid << "'";
+        ss << "', owner_guid = '" << GUID_LOPART(GetOwnerGUID()) << "' WHERE guid = '" << guidLow << "'";
 
         CharacterDatabase.Execute( ss.str().c_str() );
     }
@@ -729,6 +730,9 @@ bool Item::CanBeTraded(bool mail) const
     if (m_lootGenerated)
         return false;
 
+    if(!mail && IsBoundAccountWide()) // Dirty hack, because trade window is closing
+        return false;
+
     if ((!mail || !IsBoundAccountWide()) && IsSoulBound())
         return false;
 
@@ -771,6 +775,17 @@ bool Item::IsBoundByEnchant() const
 bool Item::IsFitToSpellRequirements(SpellEntry const* spellInfo) const
 {
     ItemPrototype const* proto = GetProto();
+
+    // Enchant spells only use Effect[0] (patch 3.3.2)
+    if(proto->IsVellum() && spellInfo->Effect[EFFECT_INDEX_0] == SPELL_EFFECT_ENCHANT_ITEM)
+    {
+        // EffectItemType[0] is the associated scroll itemID, if a scroll can be made
+        if(spellInfo->EffectItemType[EFFECT_INDEX_0] == 0)
+            return false;
+        // Other checks do not apply to vellum enchants, so return final result
+        return ((proto->SubClass == ITEM_SUBCLASS_WEAPON_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_WEAPON) ||
+                (proto->SubClass == ITEM_SUBCLASS_ARMOR_ENCHANTMENT && spellInfo->EquippedItemClass == ITEM_CLASS_ARMOR));
+    }
 
     if (spellInfo->EquippedItemClass != -1)                 // -1 == any item class
     {
@@ -967,15 +982,15 @@ Item* Item::CreateItem( uint32 item, uint32 count, Player const* player )
             count = pProto->GetMaxStackSize();
 
         ASSERT(count !=0 && "pProto->Stackable==0 but checked at loading already");
-        
+		/** World of Warcraft Armory **/
         if (pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR) && player)
         {
-            /* WoWArmory Feed Log */
             std::ostringstream ss;
             sLog.outDetail("WoWArmory: write feed log (guid: %u, type: 2, data: %u)", player->GetGUIDLow(), item);
             ss << "REPLACE INTO character_feed_log (guid, type, data, counter) VALUES (" << player->GetGUIDLow() << ", 2, " << item << ", 1)";
             CharacterDatabase.PExecute( ss.str().c_str() );
         }
+        /** World of Warcraft Armory **/
         Item *pItem = NewItemOrBag( pProto );
         if( pItem->Create(sObjectMgr.GenerateLowGuid(HIGHGUID_ITEM), item, player) )
         {

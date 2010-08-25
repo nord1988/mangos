@@ -23,6 +23,7 @@
 #include "SharedDefines.h"
 #include "Map.h"
 #include "ByteBuffer.h"
+#include "ObjectGuid.h"
 
 // magic event-numbers
 #define BG_EVENT_NONE 255
@@ -191,9 +192,10 @@ enum ScoreType
     SCORE_TOWERS_ASSAULTED      = 13,
     SCORE_TOWERS_DEFENDED       = 14,
     SCORE_SECONDARY_OBJECTIVES  = 15,
-    /* WoWArmory */
+    /** World of Warcraft Armory **/
     SCORE_DAMAGE_TAKEN          = 16,
     SCORE_HEALING_TAKEN         = 17
+    /** World of Warcraft Armory **/
 };
 
 enum ArenaType
@@ -276,8 +278,10 @@ class BattleGroundScore
         uint32 BonusHonor;
         uint32 DamageDone;
         uint32 HealingDone;
+		/** World of Warcraft Armory **/
         uint32 DamageTaken;
         uint32 HealingTaken;
+        /** World of Warcraft Armory **/
 };
 
 /*
@@ -486,7 +490,7 @@ class BattleGround
 
         virtual void AddPlayer(Player *plr);                // must be implemented in BG subclass
 
-        void AddOrSetPlayerToCorrectBgGroup(Player *plr, uint64 plr_guid, uint32 team);
+        void AddOrSetPlayerToCorrectBgGroup(Player *plr, ObjectGuid plr_guid, uint32 team);
 
         virtual void RemovePlayerAtLeave(uint64 guid, bool Transport, bool SendPacket);
                                                             // can be extended in in BG subclass

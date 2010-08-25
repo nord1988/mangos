@@ -352,6 +352,7 @@
     <ClCompile Include="..\scripts\eastern_kingdoms\sunwell_plateau\boss_brutallus.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\sunwell_plateau\boss_kalecgos.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\sunwell_plateau\instance_sunwell_plateau.cpp" />
+    <ClCompile Include="..\scripts\eastern_kingdoms\uldaman\boss_archaedas.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\uldaman\boss_ironaya.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\uldaman\uldaman.cpp" />
     <ClCompile Include="..\scripts\eastern_kingdoms\uldaman\instance_uldaman.cpp" />
@@ -425,6 +426,7 @@
     <ClCompile Include="..\scripts\kalimdor\maraudon\boss_noxxion.cpp" />
     <ClCompile Include="..\scripts\kalimdor\maraudon\boss_princess_theradras.cpp" />
     <ClCompile Include="..\scripts\kalimdor\onyxias_lair\boss_onyxia.cpp" />
+    <ClCompile Include="..\scripts\kalimdor\onyxias_lair\instance_onyxias_lair.cpp" />
     <ClCompile Include="..\scripts\kalimdor\razorfen_downs\boss_amnennar_the_coldbringer.cpp" />
     <ClCompile Include="..\scripts\kalimdor\razorfen_downs\razorfen_downs.cpp" />
     <ClCompile Include="..\scripts\kalimdor\razorfen_kraul\instance_razorfen_kraul.cpp" />
@@ -588,8 +590,8 @@
     <ClCompile Include="..\scripts\outland\coilfang_reservoir\serpent_shrine\boss_lady_vashj.cpp" />
     <ClCompile Include="..\scripts\outland\coilfang_reservoir\serpent_shrine\boss_leotheras_the_blind.cpp" />
     <ClCompile Include="..\scripts\outland\coilfang_reservoir\serpent_shrine\boss_morogrim_tidewalker.cpp" />
+    <ClCompile Include="..\scripts\outland\coilfang_reservoir\serpent_shrine\boss_the_lurker_below.cpp" />
     <ClCompile Include="..\scripts\outland\coilfang_reservoir\serpent_shrine\instance_serpent_shrine.cpp" />
-    <ClCompile Include="..\scripts\outland\coilfang_reservoir\slave_pens\boss_rokmar.cpp" />
     <ClCompile Include="..\scripts\outland\coilfang_reservoir\steam_vault\boss_hydromancer_thespia.cpp" />
     <ClCompile Include="..\scripts\outland\coilfang_reservoir\steam_vault\boss_mekgineer_steamrigger.cpp" />
     <ClCompile Include="..\scripts\outland\coilfang_reservoir\steam_vault\boss_warlord_kalithresh.cpp" />
@@ -679,6 +681,7 @@
     <ClInclude Include="..\scripts\kalimdor\caverns_of_time\hyjal\hyjal.h" />
     <ClInclude Include="..\scripts\kalimdor\caverns_of_time\hyjal\hyjalAI.h" />
     <ClInclude Include="..\scripts\kalimdor\caverns_of_time\old_hillsbrad\old_hillsbrad.h" />
+    <ClInclude Include="..\scripts\kalimdor\onyxias_lair\onyxias_lair.h" />
     <ClInclude Include="..\scripts\kalimdor\razorfen_kraul\razorfen_kraul.h" />
     <ClInclude Include="..\scripts\kalimdor\ruins_of_ahnqiraj\ruins_of_ahnqiraj.h" />
     <ClInclude Include="..\scripts\kalimdor\temple_of_ahnqiraj\temple_of_ahnqiraj.h" />
@@ -692,7 +695,7 @@
     <ClInclude Include="..\scripts\northrend\obsidian_sanctum\obsidian_sanctum.h" />
     <ClInclude Include="..\scripts\northrend\ulduar\halls_of_lightning\halls_of_lightning.h" />
     <ClInclude Include="..\scripts\northrend\ulduar\halls_of_stone\halls_of_stone.h" />
-    <ClInclude Include="..\scripts\northrend\ulduar\ulduar\ulduar.h" />
+    <ClInclude Include="..\scripts\northrend\ulduar\ulduar\def_ulduar.h" />
     <ClInclude Include="..\scripts\northrend\utgarde_keep\utgarde_keep\utgarde_keep.h" />
     <ClInclude Include="..\scripts\northrend\utgarde_keep\utgarde_pinnacle\utgarde_pinnacle.h" />
     <ClInclude Include="..\scripts\northrend\violet_hold\violet_hold.h" />

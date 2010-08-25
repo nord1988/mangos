@@ -188,7 +188,7 @@ BindIP = "0.0.0.0"
 UseProcessors = 0
 ProcessPriority = 1
 Compression = 1
-PlayerLimit = 200
+PlayerLimit = 100
 SaveRespawnTimeImmediately = 1
 MaxOverspeedPings = 2
 GridUnload = 0
@@ -803,7 +803,6 @@ HeroicCharactersPerRealm = 1
 MinLevelForHeroicCharacterCreating = 55
 SkipCinematics = 0
 MaxPlayerLevel = 80
-MinDualSpecLevel = 40
 StartPlayerLevel = 1
 StartHeroicPlayerLevel = 55
 StartPlayerMoney = 0
@@ -838,9 +837,9 @@ TimerBar.Breath.Max = 180
 TimerBar.Fire.GMLevel = 4
 TimerBar.Fire.Max = 1
 MaxPrimaryTradeSkill = 3
-MinPetitionSigns = 5
+MinPetitionSigns = 9
 MaxGroupXPDistance = 74
-MailDeliveryDelay = 3600
+MailDeliveryDelay = 120
 SkillChance.Prospecting = 0
 SkillChance.Milling = 0
 OffhandCheckAtTalentsReset = 0
@@ -1210,7 +1209,7 @@ GM.AllowAchievementGain  = 1
 #    Visibility.Distance.Grey.Unit
 #        Visibility grey distance for creatures/players (fast changing objects)
 #        addition to appropriate object type Visibility.Distance.* use in case visibility removing to
-#        object (except corpse around distences) If D is distance and G is grey distance then object
+#        object (except corpse around distances) If D is distance and G is grey distance then object
 #        make visible if distance to it <= D but make non visible if distance > D+G
 #        Default: 1 (yard)
 #
@@ -1240,6 +1239,7 @@ Visibility.Distance.Grey.Object = 10
 #    Rate.RunicPower.Income
 #    Rate.RunicPower.Loss
 #    Rate.Focus
+#    Rate.Energy (Rogue)
 #        Health and power regeneration and rage income from damage.
 #        Default: 1
 #
@@ -1373,6 +1373,7 @@ Rate.Rage.Loss = 1
 Rate.RunicPower.Income = 1
 Rate.RunicPower.Loss = 1
 Rate.Focus = 1
+Rate.Energy = 1
 Rate.Skill.Discovery = 1
 Rate.Drop.Item.Poor = 1
 Rate.Drop.Item.Normal = 5
@@ -1519,7 +1520,7 @@ BattleGround.PremadeGroupWaitForMatch = 1800000
 #
 ###################################################################################################################
 
-Arena.MaxRatingDifference = 150
+Arena.MaxRatingDifference = 0
 Arena.RatingDiscardTimer = 600000
 Arena.AutoDistributePoints = 0
 Arena.AutoDistributeInterval = 7

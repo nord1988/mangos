@@ -89,12 +89,6 @@ enum AchievementCriteriaCompletionFlags
     ACHIEVEMENT_CRITERIA_FLAG_MONEY_COUNTER     = 0x00000020,         // Displays counter as money
 };
 
-enum AchievementCriteriaGroupFlags
-{
-    // you mustn't be in a group while fulfilling this achievement
-    ACHIEVEMENT_CRITERIA_GROUP_NOT_IN_GROUP = 2,
-};
-
 enum AchievementCriteriaTypes
 {
     ACHIEVEMENT_CRITERIA_TYPE_KILL_CREATURE = 0,
@@ -439,6 +433,7 @@ enum VehicleSeatFlags
     SEAT_FLAG_HIDE_PASSENGER        = 0x00000200,           // Passenger is hidden
     SEAT_FLAG_MAIN_RIDER            = 0x00000800,           // Can control vehicle
     SEAT_FLAG_USABLE                = 0x02000000,
+    SEAT_FLAG_CAN_SWITCH            = 0x04000000,           // Can switch seats
     SEAT_FLAG_CAN_CAST              = 0x20000000,
 };
 

@@ -44,7 +44,6 @@
 #include "ObjectPosSelector.h"
 
 #include "TemporarySummon.h"
-#include "OutdoorPvPMgr.h"
 
 uint32 GuidHigh2TypeId(uint32 guid_hi)
 {
@@ -112,13 +111,13 @@ void Object::_InitValues()
     m_objectUpdated = false;
 }
 
-void Object::_Create( uint32 guidlow, uint32 entry, HighGuid guidhigh )
+void Object::_Create(uint32 guidlow, uint32 entry, HighGuid guidhigh)
 {
     if(!m_uint32Values)
         _InitValues();
 
-    uint64 guid = MAKE_NEW_GUID(guidlow, entry, guidhigh);
-    SetUInt64Value(OBJECT_FIELD_GUID, guid);
+    ObjectGuid guid = ObjectGuid(guidhigh, entry, guidlow);
+    SetGuidValue(OBJECT_FIELD_GUID, guid);
     SetUInt32Value(OBJECT_FIELD_TYPE, m_objectType);
     m_PackGUID.Set(guid);
 }
@@ -241,7 +240,7 @@ void Object::DestroyForPlayer( Player *target, bool anim ) const
     ASSERT(target);
 
     WorldPacket data(SMSG_DESTROY_OBJECT, 8);
-    data << uint64(GetGUID());
+    data << GetObjectGuid();
     data << uint8(anim ? 1 : 0);                            // WotLK (bool), may be despawn animation
     target->GetSession()->SendPacket(&data);
 }
@@ -316,6 +315,11 @@ void Object::BuildMovementUpdate(ByteBuffer * data, uint16 updateFlags) const
             }
             break;
         }
+
+        if (unit->GetTransport() || unit->GetVehicle())
+            unit->m_movementInfo.AddMovementFlag(MOVEFLAG_ONTRANSPORT);
+        else
+            unit->m_movementInfo.RemoveMovementFlag(MOVEFLAG_ONTRANSPORT);
 
         // Update movement info time
         unit->m_movementInfo.UpdateTime(getMSTime());
@@ -602,7 +606,7 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask *
                 if( index == UNIT_NPC_FLAGS )
                 {
                     // remove custom flag before sending
-                    uint32 appendValue = m_uint32Values[ index ] & ~(UNIT_NPC_FLAG_GUARD + UNIT_NPC_FLAG_OUTDOORPVP);
+                    uint32 appendValue = m_uint32Values[ index ] & ~UNIT_NPC_FLAG_GUARD;
 
                     if (GetTypeId() == TYPEID_UNIT)
                     {
@@ -712,6 +716,21 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer * data, UpdateMask *
                 }
                 else
                     *data << m_uint32Values[ index ];       // other cases
+            }
+        }
+    }
+    else if (isType(TYPEMASK_ITEM))
+    {
+        for (uint16 index = 0; index < m_valuesCount; ++index)
+        {
+            if (updateMask->GetBit(index))
+            {
+                uint32 value = m_uint32Values[index];
+
+                if (index == ITEM_FIELD_FLAGS && GetGuidValue(ITEM_FIELD_GIFTCREATOR).IsEmpty())
+                    value &= ~ITEM_FLAGS_HEROIC;
+
+                *data << value;
             }
         }
     }
@@ -1054,7 +1073,7 @@ void Object::RemoveByteFlag( uint16 index, uint8 offset, uint8 oldFlag )
 
 bool Object::PrintIndexError(uint32 index, bool set) const
 {
-    sLog.outError("Attempt %s non-existed value field: %u (count: %u) for object typeid: %u type mask: %u",(set ? "set value to" : "get value from"),index,m_valuesCount,GetTypeId(),m_objectType);
+    sLog.outError("Attempt %s nonexistent value field: %u (count: %u) for object typeid: %u type mask: %u",(set ? "set value to" : "get value from"),index,m_valuesCount,GetTypeId(),m_objectType);
 
     // ASSERT must fail after function call
     return false;
@@ -1095,7 +1114,7 @@ void Object::BuildUpdateData( UpdateDataMapType& /*update_players */)
 WorldObject::WorldObject()
     : m_isActiveObject(false), m_currMap(NULL), m_mapId(0), m_InstanceId(0), m_phaseMask(PHASEMASK_NORMAL),
     m_groupLootTimer(0), m_groupLootId(0), m_lootGroupRecipientId(0),
-    m_zoneScript(NULL),m_positionX(0.0f), m_positionY(0.0f), m_positionZ(0.0f), m_orientation(0.0f)
+    m_positionX(0.0f), m_positionY(0.0f), m_positionZ(0.0f), m_orientation(0.0f)
 {
 }
 
@@ -1633,16 +1652,6 @@ void WorldObject::AddObjectToRemoveList()
     GetMap()->AddObjectToRemoveList(this);
 }
 
-void WorldObject::SetZoneScript()
-{
-    if(Map *map = GetMap())
-    {
-        if(!map->IsBattleGroundOrArena() && !map->IsDungeon())
-            m_zoneScript = sOutdoorPvPMgr.GetZoneScript(GetZoneId());
-    }
-}
-
-
 Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, float ang,TempSummonType spwtype,uint32 despwtime)
 {
     TemporarySummon* pCreature = new TemporarySummon(GetObjectGuid());
@@ -1672,7 +1681,8 @@ Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, floa
 
     pCreature->Summon(spwtype, despwtime);
 
-    pCreature->SetOwnerGUID(GetGUID());
+    if (GetTypeId() == TYPEID_UNIT)
+        pCreature->SetCreatorGUID(GetGUID());
 
     if(GetTypeId()==TYPEID_UNIT && ((Creature*)this)->AI())
         ((Creature*)this)->AI()->JustSummoned(pCreature);
@@ -1695,8 +1705,6 @@ GameObject* WorldObject::SummonGameobject(uint32 id, float x, float y, float z, 
     }
 
     pGameObj->SetRespawnTime(despwtime/IN_MILLISECONDS);
-
-    pGameObj->SetOwnerGUID(GetGUID());
 
     map->Add(pGameObj);
 
@@ -1913,7 +1921,7 @@ void WorldObject::PlayDistanceSound( uint32 sound_id, Player* target /*= NULL*/ 
 {
     WorldPacket data(SMSG_PLAY_OBJECT_SOUND,4+8);
     data << uint32(sound_id);
-    data << uint64(GetGUID());
+    data << GetObjectGuid();
     if (target)
         target->SendDirectMessage( &data );
     else

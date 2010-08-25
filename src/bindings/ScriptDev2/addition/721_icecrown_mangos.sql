@@ -19,12 +19,11 @@ DELETE FROM `locales_npc_text` WHERE `entry` = 99323;
 DELETE FROM `npc_text` WHERE `ID` = 99323;
 DELETE FROM `gameobject` WHERE `guid` IN (913334);
 
-UPDATE `instance_template` SET `script`='instance_icecrown_spire' WHERE `map`=631;
+UPDATE `instance_template` SET `ScriptName`='instance_icecrown_spire' WHERE `map`=631;
 
 -- Saurfang
-UPDATE `creature_template` SET `ScriptName`='boss_deathbringer_saurfang' WHERE `entry`=37813;
-DELETE FROM `gameobject` WHERE `guid` IN (913383, 913385, 913395, 913397);
-DELETE FROM `gameobject_template` WHERE `entry` IN (902241,902242);
+UPDATE `creature_template` SET `faction_A` = '14', `faction_H` = '14', `ScriptName`='boss_deathbringer_saurfang' WHERE `entry`=37813;
+UPDATE `creature` SET `position_x` = -476.621,`position_y` = 2211.11,`position_z` = 541.197, `spawntimesecs` = 604800 WHERE `id` = 37813;
 UPDATE `creature_template` SET `ScriptName`='mob_blood_beast', `AIName`='' WHERE `entry`= 38508;
 DELETE FROM `spell_script_target` WHERE `entry` = 72260;
 INSERT INTO `spell_script_target` (`entry`, `type`, `targetEntry`) VALUES ('72260', '1', '37813');
@@ -39,7 +38,7 @@ UPDATE `creature_template` SET `ScriptName`='mob_cult_fanatic', `AIName`='' WHER
 UPDATE `creature_template` SET `ScriptName`='boss_lord_marrowgar' WHERE `entry`= 36612;
 UPDATE `gameobject_template` SET `faction` = '114',`data0` = '0' WHERE `gameobject_template`.`entry` IN (201910,201911);
 UPDATE `gameobject` SET `state` = '1' WHERE `guid` IN (72526,72525);
-UPDATE `creature_template` SET `ScriptName`='mob_coldflame', `minlevel` = 82, `maxlevel` = 82, `modelid_A` = 11686, `modelid_A2` = 11686, `modelid_H` = 11686, `modelid_H2` = 11686, `faction_A` = 14, `faction_H` = 14  WHERE `entry`= 36672;
+UPDATE `creature_template` SET `ScriptName`='mob_coldflame', `minlevel` = 82, `maxlevel` = 82, `modelid_1` = 11686, `modelid_2` = 11686, `modelid_3` = 11686, `modelid_4` = 11686, `faction_A` = 14, `faction_H` = 14  WHERE `entry`= 36672;
 UPDATE `creature_template` SET `ScriptName`='mob_bone_spike' WHERE `entry`= 38711;
 
 -- Gunship battle
@@ -47,6 +46,7 @@ UPDATE `creature_template` SET `ScriptName`='mob_spire_frostwyrm', `AIName`='' W
 DELETE FROM `creature_ai_scripts` WHERE `creature_id` = 37230;
 UPDATE `creature_template` SET `ScriptName`='mob_frost_giant', `AIName`='' WHERE `entry` IN (38490, 38494) ;
 DELETE FROM `creature_ai_scripts` WHERE `creature_id` IN (38490, 38494);
+DELETE FROM `creature` WHERE `guid` = 94094 AND `id` = 38490;
 
 -- Gunship armory (override)
 DELETE FROM `gameobject` WHERE `id` IN (201872,201873,201874,201875,202177,202178,202179,202180);
@@ -68,8 +68,9 @@ UPDATE `gameobject_template` SET `faction` = '114' WHERE `gameobject_template`.`
 UPDATE `gameobject` SET `state` = '0' WHERE `id` IN (201370);
 UPDATE `creature_template` SET `ScriptName`='mob_small_ooze', `AIName`='' WHERE `entry`= 36897;
 UPDATE `creature_template` SET `ScriptName`='mob_big_ooze', `AIName`='' WHERE `entry`= 36899;
+UPDATE `creature_template` SET `ScriptName`='mob_ooze_spray_stalker', `AIName`='' WHERE `entry`= 37986;
 UPDATE `creature_template` SET `minlevel` = 80, `maxlevel` = 80, `AIName` ='', `faction_A`= 14, `faction_H` = 14, `ScriptName`='mob_sticky_ooze', `AIName`='' WHERE `entry`= 37006;
-UPDATE `creature_template` SET `minlevel` = 80, `maxlevel` = 80, `AIName` ='', `faction_A`= 14, `faction_H` = 14, `ScriptName`='mob_ooze_stalker', `AIName`='' WHERE `entry` IN (37986,37013);
+UPDATE `creature_template` SET `minlevel` = 80, `maxlevel` = 80, `AIName` ='', `faction_A`= 14, `faction_H` = 14, `ScriptName`='', `AIName`='' WHERE `entry` IN (37013);
 UPDATE `creature_template` SET `minlevel` = 80, `maxlevel` = 80, `AIName` ='', `faction_A`= 14, `faction_H` = 14, `ScriptName`='mob_ooze_explode_stalker', `AIName`='' WHERE `entry` = 38107;
 DELETE FROM `spell_script_target` WHERE `entry` = 69783;
 INSERT INTO `spell_script_target` (`entry`, `type`, `targetEntry`) VALUES ('69783', '1', '37013');
@@ -82,9 +83,13 @@ UPDATE `creature_template` SET `ScriptName`='boss_festergut', `AIName`=''  WHERE
 UPDATE `gameobject_template` SET `faction` = '114' WHERE `gameobject_template`.`entry` IN (201371);
 UPDATE `gameobject` SET `state` = '0' WHERE `id` IN (201371);
 UPDATE `creature_template` SET `ScriptName`='mob_vile_gas_stalker', `AIName`=''  WHERE `entry`= 38548;
-DELETE FROM `spell_script_target` WHERE `targetEntry` = 38548;
-INSERT INTO `spell_script_target` (`entry`, `type`, `targetEntry`) VALUES ('69248', '1', '38548');
-INSERT INTO `spell_script_target` (`entry`, `type`, `targetEntry`) VALUES ('69240', '1', '38548');
+-- original auras from YTDB
+-- INSERT INTO `creature_template_addon` (`entry`, `mount`, `bytes1`, `bytes2`, `emote`, `moveflags`, `auras`) VALUES
+-- (36659, 0, 0, 1, 0, 0, '69126 0 69152 0 69154 0');
+-- DELETE FROM `creature_template_addon` WHERE `entry` = 36659;
+UPDATE `creature_template` SET `faction_A`=35, `faction_H`=35, `AIName`=''  WHERE `entry`= 36659;
+-- Visual effect mobs from Timmit
+UPDATE `creature` SET `spawnMask` = 15, `modelid` = 11686, `spawntimesecs` = 300 WHERE `id`=37013;
 
 -- Professor putricide
 UPDATE `creature_template` SET `ScriptName`='boss_proffesor_putricide', `AIName`='' WHERE `entry`= 36678;
@@ -94,7 +99,7 @@ UPDATE `gameobject` SET `state` = '0' WHERE `id` IN (201372);
 UPDATE `creature_template` SET `ScriptName`='mob_icc_gas_cloud', `AIName`='' WHERE `entry`= 37562;
 UPDATE `creature_template` SET `ScriptName`='mob_icc_volatile_ooze', `AIName`='' WHERE `entry`= 37697;
 UPDATE `creature_template` SET `ScriptName`='mob_choking_gas_bomb', `AIName`='',`minlevel` = 82, `maxlevel` = 82, `faction_A` = 14, `faction_H` = 14, `scale` = 0.5 WHERE `entry`= 38159;
-UPDATE `creature_template` SET `ScriptName`='mob_ooze_puddle', `AIName`='', `minlevel` = 82, `maxlevel` = 82, `modelid_A` = 11686, `modelid_A2` = 11686, `modelid_H` = 11686, `modelid_H2` = 11686, `faction_A` = 14, `faction_H` = 14  WHERE `entry`= 37690;
+UPDATE `creature_template` SET `ScriptName`='mob_ooze_puddle', `AIName`='', `minlevel` = 82, `maxlevel` = 82, `modelid_1` = 11686, `modelid_2` = 11686, `modelid_3` = 11686, `modelid_4` = 11686, `faction_A` = 14, `faction_H` = 14  WHERE `entry`= 37690;
 UPDATE `gameobject_template` SET `faction` = '0', `ScriptName` = 'go_plague_sigil' WHERE `gameobject_template`.`entry` IN (202182);
 
 -- Blood wing

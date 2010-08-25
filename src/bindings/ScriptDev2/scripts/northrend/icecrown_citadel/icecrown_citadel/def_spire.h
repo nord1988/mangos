@@ -4,7 +4,7 @@
 
 #ifndef DEF_ICECROWN_SPIRE_H
 #define DEF_ICECROWN_SPIRE_H
-#include "sc_boss_spell_worker.h"
+#include "BSW_ai.h"
 
 enum
 {
@@ -25,6 +25,9 @@ enum
     TYPE_ICECROWN_QUESTS        = 13,
     TYPE_COUNT                  = 14,
     MAX_ENCOUNTERS,
+
+    TYPE_STINKY,
+    TYPE_PRECIOUS,
 
     NPC_LORD_MARROWGAR          = 36612,
     NPC_LADY_DEATHWHISPER       = 36855,
@@ -68,6 +71,8 @@ enum
     GO_DEATHWHISPER_ELEVATOR    = 202220, //5653
 
     GO_SAURFANG_DOOR            = 201825,
+
+    GO_GAS_RELEASE_VALVE        = 201616, //72479
 
     GO_ORANGE_PLAGUE            = 201371, //72536
     GO_GREEN_PLAGUE             = 201370, //72537
@@ -134,7 +139,7 @@ enum
     TYPE_EVENT                  = 100,
     TYPE_EVENT_NPC              = 101,
     MAP_NUM                     = 631,
-    TYPE_DIFFICULTY             = 1001,
+    DATA_DIRECTION              = 1001,
     DATA_BLOOD_COUNCIL_HEALTH   = 1002,
     DATA_BLOOD_INVOCATION       = 1003,
     DESPAWN_TIME                = 300000,
@@ -186,6 +191,7 @@ private:
     uint64 m_uiValithriaGUID;
     uint64 m_uiSindragosaGUID;
     uint64 m_uiLichKingGUID;
+    uint64 m_uiGasReleaseValveGUID;
 
     uint64 m_uiRimefangGUID;
     uint64 m_uiSpinestalkerGUID;
@@ -250,6 +256,10 @@ private:
 
     uint32 m_auiEvent;
     uint32 m_auiEventTimer;
+    uint32 m_uiDirection;
+
+    uint32 m_uiStinkystate;
+    uint32 m_uiPreciousstate;
 
 
 };

@@ -38,6 +38,10 @@ base/guard_ai.cpp \
 base/guard_ai.h \
 base/simple_ai.cpp \
 base/simple_ai.h \
+base/BSW_instance.cpp \
+base/BSW_instance.h \
+base/BSW_ai.cpp \
+base/BSW_ai.h \
 include/precompiled.cpp \
 include/precompiled.h \
 include/sc_creature.cpp \
@@ -47,8 +51,6 @@ include/sc_grid_searchers.cpp \
 include/sc_grid_searchers.h \
 include/sc_instance.cpp \
 include/sc_instance.h \
-include/sc_boss_spell_worker.cpp \
-include/sc_boss_spell_worker.h \
 scripts/battlegrounds/battleground.cpp \
 scripts/custom/npc_arena_honor.cpp \
 scripts/custom/teleguy.cpp \
@@ -201,6 +203,7 @@ scripts/eastern_kingdoms/sunwell_plateau/boss_brutallus.cpp \
 scripts/eastern_kingdoms/sunwell_plateau/boss_kalecgos.cpp \
 scripts/eastern_kingdoms/sunwell_plateau/instance_sunwell_plateau.cpp \
 scripts/eastern_kingdoms/sunwell_plateau/sunwell_plateau.h \
+scripts/eastern_kingdoms/uldaman/boss_archaedas.cpp \
 scripts/eastern_kingdoms/uldaman/boss_ironaya.cpp \
 scripts/eastern_kingdoms/uldaman/uldaman.cpp \
 scripts/eastern_kingdoms/uldaman/uldaman.h \
@@ -280,6 +283,8 @@ scripts/kalimdor/maraudon/boss_landslide.cpp \
 scripts/kalimdor/maraudon/boss_noxxion.cpp \
 scripts/kalimdor/maraudon/boss_princess_theradras.cpp \
 scripts/kalimdor/onyxias_lair/boss_onyxia.cpp \
+scripts/kalimdor/onyxias_lair/instance_onyxias_lair.cpp \
+scripts/kalimdor/onyxias_lair/onyxias_lair.h \
 scripts/kalimdor/razorfen_downs/boss_amnennar_the_coldbringer.cpp \
 scripts/kalimdor/razorfen_downs/razorfen_downs.cpp \
 scripts/kalimdor/razorfen_kraul/instance_razorfen_kraul.cpp \
@@ -419,6 +424,8 @@ scripts/northrend/ulduar/halls_of_stone/boss_krystallus.cpp \
 scripts/northrend/ulduar/halls_of_stone/halls_of_stone.cpp \
 scripts/northrend/ulduar/halls_of_stone/def_halls_of_stone.h \
 scripts/northrend/ulduar/halls_of_stone/instance_halls_of_stone.cpp \
+scripts/northrend/ulduar/ulduar/instance_ulduar.cpp \
+scripts/northrend/ulduar/ulduar/def_ulduar.h \
 scripts/northrend/ulduar/ulduar/boss_algalon.cpp \
 scripts/northrend/ulduar/ulduar/boss_auriaya.cpp \
 scripts/northrend/ulduar/ulduar/boss_freya.cpp \
@@ -431,11 +438,10 @@ scripts/northrend/ulduar/ulduar/boss_mimiron.cpp \
 scripts/northrend/ulduar/ulduar/boss_razorscale.cpp \
 scripts/northrend/ulduar/ulduar/boss_thorim.cpp \
 scripts/northrend/ulduar/ulduar/boss_vezax.cpp \
-scripts/northrend/ulduar/ulduar/boss_xt_002.cpp \
+scripts/northrend/ulduar/ulduar/boss_xt002.cpp \
 scripts/northrend/ulduar/ulduar/boss_yogg_saron.cpp \
+scripts/northrend/ulduar/ulduar/ulduar.cpp \
 scripts/northrend/ulduar/ulduar/ulduar_teleport.cpp \
-scripts/northrend/ulduar/ulduar/instance_ulduar.cpp \
-scripts/northrend/ulduar/ulduar/ulduar.h \
 scripts/northrend/utgarde_keep/utgarde_keep/boss_ingvar.cpp \
 scripts/northrend/utgarde_keep/utgarde_keep/boss_keleseth.cpp \
 scripts/northrend/utgarde_keep/utgarde_keep/boss_skarvald_and_dalronn.cpp \
@@ -494,6 +500,7 @@ scripts/outland/coilfang_reservoir/serpent_shrine/boss_hydross_the_unstable.cpp 
 scripts/outland/coilfang_reservoir/serpent_shrine/boss_lady_vashj.cpp \
 scripts/outland/coilfang_reservoir/serpent_shrine/boss_leotheras_the_blind.cpp \
 scripts/outland/coilfang_reservoir/serpent_shrine/boss_morogrim_tidewalker.cpp \
+scripts/outland/coilfang_reservoir/serpent_shrine/boss_the_lurker_below.cpp \
 scripts/outland/coilfang_reservoir/serpent_shrine/instance_serpent_shrine.cpp \
 scripts/outland/coilfang_reservoir/serpent_shrine/serpent_shrine.h \
 scripts/outland/coilfang_reservoir/steam_vault/boss_hydromancer_thespia.cpp \

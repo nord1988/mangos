@@ -104,7 +104,7 @@ ConfVersion=2010062001
 #
 ###################################################################################################################
 
-LoginDatabaseInfo = "127.0.0.1;3306;root;PASS;wotlk_realmd"
+LoginDatabaseInfo = "127.0.0.1;3306;root;pass;wotlk_realmd"
 LogsDir = ""
 MaxPingTime = 30
 RealmServerPort = 3724

@@ -936,7 +936,7 @@ enum Mechanics
     MECHANIC_FEAR             = 5,
     MECHANIC_GRIP             = 6,
     MECHANIC_ROOT             = 7,
-    MECHANIC_PACIFY           = 8,                          //0 spells use this mechanic
+    MECHANIC_SLOWATTACK       = 8,                          //0 spells use this mechanic, but some SPELL_AURA_MOD_HASTE and SPELL_AURA_MOD_RANGED_HASTE use as effect mechanic 
     MECHANIC_SILENCE          = 9,
     MECHANIC_SLEEP            = 10,
     MECHANIC_SNARE            = 11,
@@ -965,7 +965,7 @@ enum Mechanics
 // Used for spell 42292 Immune Movement Impairment and Loss of Control (0x49967da6)
 #define IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK ( \
     (1<<(MECHANIC_CHARM   -1))|(1<<(MECHANIC_DISORIENTED-1))|(1<<(MECHANIC_FEAR  -1))| \
-    (1<<(MECHANIC_ROOT    -1))|(1<<(MECHANIC_PACIFY     -1))|(1<<(MECHANIC_SLEEP -1))| \
+    (1<<(MECHANIC_ROOT    -1))|(1<<(MECHANIC_SLOWATTACK -1))|(1<<(MECHANIC_SLEEP -1))| \
     (1<<(MECHANIC_SNARE   -1))|(1<<(MECHANIC_STUN       -1))|(1<<(MECHANIC_FREEZE-1))| \
     (1<<(MECHANIC_KNOCKOUT-1))|(1<<(MECHANIC_POLYMORPH  -1))|(1<<(MECHANIC_BANISH-1))| \
     (1<<(MECHANIC_SHACKLE -1))|(1<<(MECHANIC_TURN       -1))|(1<<(MECHANIC_HORROR-1))| \
@@ -985,10 +985,10 @@ enum Mechanics
 
 // Daze and all croud control spells except polymorph are not removed
 #define MECHANIC_NOT_REMOVED_BY_SHAPESHIFT ( \
-    (1<<(MECHANIC_CHARM -1))|(1<<(MECHANIC_DISORIENTED-1))|(1<<(MECHANIC_FEAR  -1))| \
-    (1<<(MECHANIC_PACIFY-1))|(1<<(MECHANIC_STUN       -1))|(1<<(MECHANIC_FREEZE-1))| \
-    (1<<(MECHANIC_BANISH-1))|(1<<(MECHANIC_SHACKLE    -1))|(1<<(MECHANIC_HORROR-1))| \
-    (1<<(MECHANIC_TURN  -1))|(1<<(MECHANIC_DAZE       -1))|(1<<(MECHANIC_SAPPED-1)))
+    (1<<(MECHANIC_CHARM  -1))|(1<<(MECHANIC_DISORIENTED-1))|(1<<(MECHANIC_FEAR  -1))| \
+    (1<<(MECHANIC_STUN   -1))|(1<<(MECHANIC_FREEZE     -1))|(1<<(MECHANIC_BANISH-1))| \
+    (1<<(MECHANIC_SHACKLE-1))|(1<<(MECHANIC_HORROR     -1))|(1<<(MECHANIC_TURN  -1))| \
+    (1<<(MECHANIC_DAZE   -1))|(1<<(MECHANIC_SAPPED     -1)))
 
 // Spell dispell type
 enum DispelType
@@ -2007,7 +2007,7 @@ enum QuestSort
     QUEST_SORT_ROGUE               = 162,
     QUEST_SORT_ALCHEMY             = 181,
     QUEST_SORT_LEATHERWORKING      = 182,
-    QUEST_SORT_ENGINERING          = 201,
+    QUEST_SORT_ENGINEERING         = 201,
     QUEST_SORT_TREASURE_MAP        = 221,
     QUEST_SORT_SUNKEN_TEMPLE_OLD   = 241,
     QUEST_SORT_HUNTER              = 261,
@@ -2109,7 +2109,7 @@ enum SkillType
     SKILL_PET_IMP                  = 188,
     SKILL_PET_FELHUNTER            = 189,
     SKILL_TAILORING                = 197,
-    SKILL_ENGINERING               = 202,
+    SKILL_ENGINEERING              = 202,
     SKILL_PET_SPIDER               = 203,
     SKILL_PET_VOIDWALKER           = 204,
     SKILL_PET_SUCCUBUS             = 205,
@@ -2229,7 +2229,7 @@ inline uint32 SkillByQuestSort(int32 QuestSort)
         case QUEST_SORT_BLACKSMITHING:  return SKILL_BLACKSMITHING;
         case QUEST_SORT_ALCHEMY:        return SKILL_ALCHEMY;
         case QUEST_SORT_LEATHERWORKING: return SKILL_LEATHERWORKING;
-        case QUEST_SORT_ENGINERING:     return SKILL_ENGINERING;
+        case QUEST_SORT_ENGINEERING:    return SKILL_ENGINEERING;
         case QUEST_SORT_TAILORING:      return SKILL_TAILORING;
         case QUEST_SORT_COOKING:        return SKILL_COOKING;
         case QUEST_SORT_FIRST_AID:      return SKILL_FIRST_AID;
@@ -2643,6 +2643,44 @@ enum MailResponseResult
     MAIL_ERR_TOO_MANY_ATTACHMENTS      = 18,
     MAIL_ERR_MAIL_ATTACHMENT_INVALID   = 19,
     MAIL_ERR_ITEM_HAS_EXPIRED          = 21,
+};
+
+enum CalendarResponseResult
+{
+    CALENDAR_ERROR_GUILD_EVENTS_EXCEEDED        = 1,
+    CALENDAR_ERROR_EVENTS_EXCEEDED              = 2,        // max of 20 (?) exceeded
+    CALENDAR_ERROR_SELF_INVITES_EXCEEDED        = 3,
+    CALENDAR_ERROR_OTHER_INVITES_EXCEEDED       = 4,        // std::string
+    CALENDAR_ERROR_PERMISSIONS                  = 5,
+    CALENDAR_ERROR_EVENT_INVALID                = 6,        // Event not found.
+    CALENDAR_ERROR_NOT_INVITED                  = 7,
+    CALENDAR_ERROR_INTERNAL                     = 8,
+    CALENDAR_ERROR_GUILD_PLAYER_NOT_IN_GUILD    = 9,
+    CALENDAR_ERROR_ALREADY_INVITED_TO_EVENT_S   = 10,       // std::string
+    CALENDAR_ERROR_PLAYER_NOT_FOUND             = 11,
+    CALENDAR_ERROR_NOT_ALLIED                   = 12,
+    CALENDAR_ERROR_IGNORING_YOU_S               = 13,       // std::string
+    CALENDAR_ERROR_INVITES_EXCEEDED             = 14,
+    // 15 ?
+    CALENDAR_ERROR_INVALID_DATE                 = 16,
+    CALENDAR_ERROR_INVALID_TIME                 = 17,
+    // 18 ?
+    CALENDAR_ERROR_NEEDS_TITLE                  = 19,
+    CALENDAR_ERROR_EVENT_PASSED                 = 20,
+    CALENDAR_ERROR_EVENT_LOCKED                 = 21,
+    CALENDAR_ERROR_DELETE_CREATOR_FAILED        = 22,
+    CALENDAR_ERROR_SYSTEM_DISABLED              = 24,
+    CALENDAR_ERROR_RESTRICTED_ACCOUNT           = 25,
+    CALENDAR_ERROR_ARENA_EVENTS_EXCEEDED        = 26,
+    CALENDAR_ERROR_RESTRICTED_LEVEL             = 27,
+    CALENDAR_ERROR_USER_SQUELCHED               = 28,
+    CALENDAR_ERROR_NO_INVITE                    = 29,
+    // 30-35 ?
+    CALENDAR_ERROR_EVENT_WRONG_SERVER           = 36,
+    CALENDAR_ERROR_INVITE_WRONG_SERVER          = 37,
+    CALENDAR_ERROR_NO_GUILD_INVITES             = 38,
+    CALENDAR_ERROR_INVALID_SIGNUP               = 39,
+    CALENDAR_ERROR_NO_MODERATOR                 = 40,
 };
 
 // reasons for why pet tame may fail

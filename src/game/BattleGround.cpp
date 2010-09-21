@@ -209,6 +209,7 @@ void BattleGround::BroadcastWorker(Do& _do)
 BattleGround::BattleGround()
 {
     m_TypeID            = BattleGroundTypeId(0);
+    m_RandomTypeID      = BattleGroundTypeId(0);
     m_Status            = STATUS_NONE;
     m_ClientInstanceID  = 0;
     m_EndTime           = 0;
@@ -222,6 +223,7 @@ BattleGround::BattleGround()
     m_Events            = 0;
     m_IsRated           = false;
     m_BuffChange        = false;
+    m_IsRandom          = false;
     m_Name              = "";
     m_LevelMin          = 0;
     m_LevelMax          = 0;
@@ -288,8 +290,8 @@ BattleGround::~BattleGround()
     if (GetInstanceID())                                    // not spam by useless queries in case BG templates
     {
         // delete creature and go respawn times
-        WorldDatabase.PExecute("DELETE FROM creature_respawn WHERE instance = '%u'",GetInstanceID());
-        WorldDatabase.PExecute("DELETE FROM gameobject_respawn WHERE instance = '%u'",GetInstanceID());
+        CharacterDatabase.PExecute("DELETE FROM creature_respawn WHERE instance = '%u'", GetInstanceID());
+        CharacterDatabase.PExecute("DELETE FROM gameobject_respawn WHERE instance = '%u'", GetInstanceID());
         // delete instance from db
         CharacterDatabase.PExecute("DELETE FROM instance WHERE id = '%u'",GetInstanceID());
         // remove from battlegrounds
@@ -720,10 +722,10 @@ void BattleGround::EndBattleGround(uint32 winner)
             winner_rating = winner_arena_team->GetStats().rating;
             int32 winner_change = winner_arena_team->WonAgainst(loser_rating);
             int32 loser_change = loser_arena_team->LostAgainst(winner_rating);
-            DEBUG_LOG("--- Winner rating: %u, Loser rating: %u, Winner change: %u, Losser change: %u ---", winner_rating, loser_rating, winner_change, loser_change);
+            DEBUG_LOG("--- Winner rating: %u, Loser rating: %u, Winner change: %i, Loser change: %i ---", winner_rating, loser_rating, winner_change, loser_change);
             SetArenaTeamRatingChangeForTeam(winner, winner_change);
             SetArenaTeamRatingChangeForTeam(GetOtherTeam(winner), loser_change);
-			/** World of Warcraft Armory **/
+            /** World of Warcraft Armory **/
             uint32 maxChartID;
             QueryResult *result = CharacterDatabase.PQuery("SELECT MAX(gameid) FROM armory_game_chart");
             if(!result)
@@ -740,24 +742,27 @@ void BattleGround::EndBattleGround(uint32 winner)
                 if (!plr)
                     continue;
                 uint32 plTeamID = plr->GetArenaTeamId(winner_arena_team->GetSlot());
-                uint32 changeType;
+                int changeType;
                 uint32 resultRating;
                 uint32 resultTeamID;
+                int32 ratingChange;
                 if (plTeamID == winner_arena_team->GetId())
                 {
                     changeType = 1; //win
                     resultRating = winner_rating;
                     resultTeamID = plTeamID;
+                    ratingChange = winner_change;
                 }
                 else
                 {
                     changeType = 2; //lose
                     resultRating = loser_rating;
                     resultTeamID = loser_arena_team->GetId();
+                    ratingChange = loser_change;
                 }
                 std::ostringstream sql_query;
                 //                                                        gameid,              teamid,                     guid,                    changeType,             ratingChange,               teamRating,                  damageDone,                          deaths,                          healingDone,                           damageTaken,                           healingTaken,                         killingBlows,                      mapId,                 start,                   end
-                sql_query << "INSERT INTO armory_game_chart VALUES ('" << gameID << "', '" << resultTeamID << "', '" << plr->GetGUID() << "', '" << changeType << "', '" << winner_change << "', '" << resultRating << "', '" << itr->second->DamageDone << "', '" << itr->second->Deaths << "', '" << itr->second->HealingDone << "', '" << itr->second->DamageTaken << "', '" << itr->second->HealingTaken << "', '" << itr->second->KillingBlows << "', '" << m_MapId << "', '" << m_StartTime << "', '" << m_EndTime << "')";
+                sql_query << "INSERT INTO armory_game_chart VALUES ('" << gameID << "', '" << resultTeamID << "', '" << plr->GetGUID() << "', '" << changeType << "', '" << ratingChange  << "', '" << resultRating << "', '" << itr->second->DamageDone << "', '" << itr->second->Deaths << "', '" << itr->second->HealingDone << "', '" << itr->second->DamageTaken << "', '" << itr->second->HealingTaken << "', '" << itr->second->KillingBlows << "', '" << m_MapId << "', '" << m_StartTime << "', '" << m_EndTime << "')";
                 CharacterDatabase.Execute(sql_query.str().c_str());
             }
             /** World of Warcraft Armory **/
@@ -832,24 +837,41 @@ void BattleGround::EndBattleGround(uint32 winner)
             }
         }
 
+        uint32 win_kills = plr->GetRandomWinner() ? BG_REWARD_WINNER_HONOR_LAST : BG_REWARD_WINNER_HONOR_FIRST;
+        uint32 loos_kills = plr->GetRandomWinner() ? BG_REWARD_LOOSER_HONOR_LAST : BG_REWARD_LOOSER_HONOR_FIRST;
+        uint32 win_arena = plr->GetRandomWinner() ? BG_REWARD_WINNER_ARENA_LAST : BG_REWARD_WINNER_ARENA_FIRST;
+
         if (team == winner)
         {
             RewardMark(plr,ITEM_WINNER_COUNT);
             RewardQuestComplete(plr);
+
+            if (IsRandom() || BattleGroundMgr::IsBGWeekend(GetTypeID()))
+            {
+                UpdatePlayerScore(plr, SCORE_BONUS_HONOR, GetBonusHonorFromKill(win_kills*4));
+                plr->ModifyArenaPoints(win_arena);
+                if(!plr->GetRandomWinner())
+                    plr->SetRandomWinner(true);
+            }
+
             plr->GetAchievementMgr().UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_WIN_BG, 1);
+
 			if (isArena() && isRated())
 			{
 				RewardItem(plr,43589,2);
 			}
         }
         else
-		{
+        {
             RewardMark(plr,ITEM_LOSER_COUNT);
+            if (IsRandom() || BattleGroundMgr::IsBGWeekend(GetTypeID()))
+                UpdatePlayerScore(plr, SCORE_BONUS_HONOR, GetBonusHonorFromKill(loos_kills*4));
+
 			if (isArena() && isRated())
 			{
 				RewardItem(plr,43589,1);
 			}
-		}
+        }
 
         plr->CombatStopWithPets(true);
 
@@ -893,7 +915,7 @@ uint32 BattleGround::GetBonusHonorFromKill(uint32 kills) const
 
 uint32 BattleGround::GetBattlemasterEntry() const
 {
-    switch(GetTypeID())
+    switch(GetTypeID(true))
     {
         case BATTLEGROUND_AV: return 15972;
         case BATTLEGROUND_WS: return 14623;
@@ -906,7 +928,7 @@ uint32 BattleGround::GetBattlemasterEntry() const
 
 void BattleGround::RewardMark(Player *plr,uint32 count)
 {
-    switch(GetTypeID())
+    switch(GetTypeID(true))
     {
         case BATTLEGROUND_AV:
             if (count == ITEM_WINNER_COUNT)
@@ -1012,7 +1034,7 @@ void BattleGround::SendRewardMarkByMail(Player *plr,uint32 mark, uint32 count)
 void BattleGround::RewardQuestComplete(Player *plr)
 {
     uint32 quest;
-    switch(GetTypeID())
+    switch(GetTypeID(true))
     {
         case BATTLEGROUND_AV:
             quest = SPELL_AV_QUEST_REWARD;
@@ -1424,7 +1446,7 @@ void BattleGround::UpdatePlayerScore(Player *Source, uint32 type, uint32 value)
         case SCORE_HEALING_DONE:                            // Healing Done
             itr->second->HealingDone += value;
             break;
-		/** World of Warcraft Armory **/
+        /** World of Warcraft Armory **/
         case SCORE_DAMAGE_TAKEN:
             itr->second->DamageTaken += value;              // Damage Taken
             break;
@@ -1749,7 +1771,7 @@ void BattleGround::HandleTriggerBuff(uint64 const& go_guid)
         index--;
     if (index < 0)
     {
-        sLog.outError("BattleGround (Type: %u) has buff gameobject (Guid: %u Entry: %u Type:%u) but it hasn't that object in its internal data",GetTypeID(),GUID_LOPART(go_guid),obj->GetEntry(),obj->GetGoType());
+        sLog.outError("BattleGround (Type: %u) has buff gameobject (Guid: %u Entry: %u Type:%u) but it hasn't that object in its internal data",GetTypeID(true),GUID_LOPART(go_guid),obj->GetEntry(),obj->GetGoType());
         return;
     }
 

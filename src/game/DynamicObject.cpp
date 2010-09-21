@@ -60,7 +60,7 @@ void DynamicObject::RemoveFromWorld()
 
 bool DynamicObject::Create( uint32 guidlow, Unit *caster, uint32 spellId, SpellEffectIndex effIndex, float x, float y, float z, int32 duration, float radius )
 {
-    WorldObject::_Create(guidlow, HIGHGUID_DYNAMICOBJECT, caster->GetPhaseMask());
+    WorldObject::_Create(ObjectGuid(HIGHGUID_DYNAMICOBJECT, guidlow), caster->GetPhaseMask());
     SetMap(caster->GetMap());
     Relocate(x, y, z, 0);
 
@@ -149,7 +149,7 @@ void DynamicObject::Delay(int32 delaytime)
     m_aliveDuration -= delaytime;
     for(AffectedSet::iterator iunit= m_affected.begin(); iunit != m_affected.end(); ++iunit)
         if (*iunit)
-            (*iunit)->DelaySpellAuraHolder(m_spellId, delaytime);
+            (*iunit)->DelaySpellAuraHolder(m_spellId, delaytime, GetCasterGUID());
 }
 
 bool DynamicObject::isVisibleForInState(Player const* u, WorldObject const* viewPoint, bool inVisibleList) const

@@ -119,6 +119,10 @@ scripts/eastern_kingdoms/blackwing_lair/instance_blackwing_lair.cpp \
 scripts/eastern_kingdoms/deadmines/deadmines.cpp \
 scripts/eastern_kingdoms/deadmines/deadmines.h \
 scripts/eastern_kingdoms/deadmines/instance_deadmines.cpp \
+scripts/eastern_kingdoms/gnomeregan/boss_thermaplugg.cpp \
+scripts/eastern_kingdoms/gnomeregan/gnomeregan.cpp \
+scripts/eastern_kingdoms/gnomeregan/gnomeregan.h \
+scripts/eastern_kingdoms/gnomeregan/instance_gnomeregan.cpp \
 scripts/eastern_kingdoms/karazhan/boss_curator.cpp \
 scripts/eastern_kingdoms/karazhan/boss_maiden_of_virtue.cpp \
 scripts/eastern_kingdoms/karazhan/boss_midnight.cpp \
@@ -583,6 +587,7 @@ scripts/kalimdor/caverns_of_time/culling_of_stratholme/boss_meathook.cpp \
 scripts/kalimdor/caverns_of_time/culling_of_stratholme/instance_culling_of_stratholme.cpp \
 scripts/kalimdor/caverns_of_time/culling_of_stratholme/boss_salramm.cpp \
 scripts/kalimdor/caverns_of_time/culling_of_stratholme/boss_infinite_corruptor.cpp \
+scripts/kalimdor/caverns_of_time/culling_of_stratholme/trash_culling_of_stratholme.cpp \
 scripts/world/areatrigger_scripts.cpp \
 scripts/world/boss_emeriss.cpp \
 scripts/world/boss_lethon.cpp \

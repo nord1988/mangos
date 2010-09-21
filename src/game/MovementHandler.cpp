@@ -353,7 +353,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     GetPlayer()->ProcessDelayedOperations();
 }
 
-void WorldSession::HandleMoveTeleportAck(WorldPacket& recv_data)
+void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 {
     DEBUG_LOG("MSG_MOVE_TELEPORT_ACK");
 
@@ -430,6 +430,10 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     recv_data >> guid.ReadAsPacked();
     recv_data >> movementInfo;
     /*----------------*/
+
+    // ignore wrong guid (player attempt cheating own session for not own guid possible...)
+    if (guid != mover->GetObjectGuid())
+        return;
 
     if (!MaNGOS::IsValidMapCoord(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o))
     {
@@ -707,7 +711,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     }
 }
 
-void WorldSession::HandleForceSpeedChangeAck(WorldPacket &recv_data)
+void WorldSession::HandleForceSpeedChangeAckOpcodes(WorldPacket &recv_data)
 {
     uint32 opcode = recv_data.GetOpcode();
     DEBUG_LOG("WORLD: Recvd %s (%u, 0x%X) opcode", LookupOpcodeName(opcode), opcode, opcode);
@@ -792,7 +796,7 @@ void WorldSession::HandleSetActiveMoverOpcode(WorldPacket &recv_data)
         GetPlayer()->SetMover(NULL);
 }
 
-void WorldSession::HandleMoveNotActiveMover(WorldPacket &recv_data)
+void WorldSession::HandleMoveNotActiveMoverOpcode(WorldPacket &recv_data)
 {
     DEBUG_LOG("WORLD: Recvd CMSG_MOVE_NOT_ACTIVE_MOVER");
     recv_data.hexlike();
@@ -814,113 +818,6 @@ void WorldSession::HandleMoveNotActiveMover(WorldPacket &recv_data)
     }
 
     _player->m_movementInfo = mi;
-}
-
-void WorldSession::HandleDismissControlledVehicle(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_DISMISS_CONTROLLED_VEHICLE");
-    recv_data.hexlike();
-
-    ObjectGuid guid;
-    MovementInfo mi;
-
-    recv_data >> guid.ReadAsPacked();
-    recv_data >> mi;
-
-    if(!GetPlayer()->GetVehicle())
-        return;
-
-    GetPlayer()->m_movementInfo = mi;
-    GetPlayer()->ExitVehicle();
-}
-
-void WorldSession::HandleRequestVehicleExit(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_REQUEST_VEHICLE_EXIT");
-    recv_data.hexlike();
-
-    GetPlayer()->ExitVehicle();
-}
-
-void WorldSession::HandleRequestVehiclePrevSeat(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_REQUEST_VEHICLE_PREV_SEAT");
-    recv_data.hexlike();
-
-    GetPlayer()->ChangeSeat(-1, false);
-}
-
-void WorldSession::HandleRequestVehicleNextSeat(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_REQUEST_VEHICLE_NEXT_SEAT");
-    recv_data.hexlike();
-
-    GetPlayer()->ChangeSeat(-1, true);
-}
-
-void WorldSession::HandleRequestVehicleSwitchSeat(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_REQUEST_VEHICLE_SWITCH_SEAT");
-    recv_data.hexlike();
-
-    ObjectGuid guid;
-    recv_data >> guid.ReadAsPacked();
-
-    int8 seatId;
-    recv_data >> seatId;
-
-    VehicleKit* pVehicle = GetPlayer()->GetVehicle();
-
-    if (!pVehicle)
-        return;
-
-    if (pVehicle->GetBase()->GetObjectGuid() == guid)
-        GetPlayer()->ChangeSeat(seatId);
-}
-
-void WorldSession::HandleEnterPlayerVehicle(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_PLAYER_VEHICLE_ENTER");
-    recv_data.hexlike();
-
-    ObjectGuid guid;
-    recv_data >> guid;
-
-    Player* player = sObjectMgr.GetPlayer(guid);
-
-    if (!player)
-        return;
-
-    if (!GetPlayer()->IsInSameRaidWith(player))
-        return;
-
-    if (!GetPlayer()->IsWithinDistInMap(player, INTERACTION_DISTANCE))
-        return;
-
-    if (player->GetTransport())
-        return;
-
-    if (VehicleKit* pVehicle = player->GetVehicleKit())
-        GetPlayer()->EnterVehicle(pVehicle);
-}
-
-void WorldSession::HandleEjectPasenger(WorldPacket &recv_data)
-{
-    DEBUG_LOG("WORLD: Recvd CMSG_EJECT_PASSENGER");
-    recv_data.hexlike();
-
-    ObjectGuid guid;
-    recv_data >> guid;
-
-    Player* passenger = sObjectMgr.GetPlayer(guid);
-
-    if (!passenger)
-        return;
-
-    if (!passenger->GetVehicle() || passenger->GetVehicle() != GetPlayer()->GetVehicleKit())
-        return;
-
-    passenger->ExitVehicle();
 }
 
 void WorldSession::HandleMountSpecialAnimOpcode(WorldPacket& /*recvdata*/)

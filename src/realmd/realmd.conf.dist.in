@@ -30,6 +30,9 @@ ConfVersion=2010062001
 #
 #    BindIP
 #         Bind Realm Server to IP/hostname
+#         This option is useful for running multiple worldd/realmd instances
+#         on different IP addresses using default ports.
+#         DO NOT CHANGE THIS UNLESS YOU _REALLY_ KNOW WHAT YOU'RE DOING
 #
 #    PidFile
 #        Realmd daemon PID file
@@ -104,7 +107,7 @@ ConfVersion=2010062001
 #
 ###################################################################################################################
 
-LoginDatabaseInfo = "127.0.0.1;3306;root;pass;wotlk_realmd"
+LoginDatabaseInfo = "127.0.0.1;3306;root;PASS;wotlk_realmd"
 LogsDir = ""
 MaxPingTime = 30
 RealmServerPort = 3724

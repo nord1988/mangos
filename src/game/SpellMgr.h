@@ -22,6 +22,7 @@
 // For static or at-server-startup loaded spell data
 // For more high level function for sSpellStore data
 
+#include "Common.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"
 #include "DBCStructure.h"
@@ -717,6 +718,8 @@ class PetAura
         int32 damage;
 };
 typedef std::map<uint32, PetAura> SpellPetAuraMap;
+typedef std::vector<PetAura> PetPassiveAuraList;
+typedef std::map<uint32, PetPassiveAuraList> SpellPetPassiveAuraMap;
 
 struct SpellArea
 {
@@ -1041,6 +1044,15 @@ class SpellMgr
                 return NULL;
         }
 
+        PetPassiveAuraList const* GetPetPassiveAuraList(uint32 creature_id)
+        {
+            SpellPetPassiveAuraMap::const_iterator itr = mSpellPetPassiveAuraMap.find(creature_id);
+            if(itr != mSpellPetPassiveAuraMap.end())
+                return &itr->second;
+            else
+                return NULL;
+        }
+
         PetLevelupSpellSet const* GetPetLevelupSpellList(uint32 petFamily) const
         {
             PetLevelupSpellMap::const_iterator itr = mPetLevelupSpellMap.find(petFamily);
@@ -1128,6 +1140,7 @@ class SpellMgr
         SpellBonusMap      mSpellBonusMap;
         SkillLineAbilityMap mSkillLineAbilityMap;
         SpellPetAuraMap     mSpellPetAuraMap;
+        SpellPetPassiveAuraMap     mSpellPetPassiveAuraMap;
         PetLevelupSpellMap  mPetLevelupSpellMap;
         PetDefaultSpellsMap mPetDefaultSpellsMap;           // only spells not listed in related mPetLevelupSpellMap entry
         SpellAreaMap         mSpellAreaMap;

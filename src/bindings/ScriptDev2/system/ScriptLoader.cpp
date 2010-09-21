@@ -66,6 +66,9 @@ extern void AddSC_boss_nefarian();
 extern void AddSC_boss_victor_nefarius();
 extern void AddSC_deadmines();                              //deadmines
 extern void AddSC_instance_deadmines();
+extern void AddSC_gnomeregan();                             //gnomeregan
+extern void AddSC_boss_thermaplugg();
+extern void AddSC_instance_gnomeregan();
 extern void AddSC_boss_attumen();                           //karazhan
 extern void AddSC_boss_curator();
 extern void AddSC_boss_maiden_of_virtue();
@@ -244,6 +247,7 @@ extern void AddSC_boss_infinite_corruptor();
 extern void AddSC_culling_of_stratholme();
 extern void AddSC_culling_of_stratholmeAI();
 extern void AddSC_instance_culling_of_stratholme();
+extern void AddSC_trash_culling_of_stratholme();
 
 extern void AddSC_ashenvale();
 extern void AddSC_azshara();
@@ -571,6 +575,9 @@ void AddScripts()
     AddSC_boss_victor_nefarius();
     AddSC_deadmines();                                      //deadmines
     AddSC_instance_deadmines();
+    AddSC_gnomeregan();                                     //gnomeregan
+    AddSC_boss_thermaplugg();
+    AddSC_instance_gnomeregan();
     AddSC_boss_attumen();                                   //karazhan
     AddSC_boss_curator();
     AddSC_boss_maiden_of_virtue();
@@ -999,6 +1006,7 @@ void AddScripts()
     AddSC_culling_of_stratholme();
     AddSC_culling_of_stratholmeAI();
     AddSC_instance_culling_of_stratholme();
+    AddSC_trash_culling_of_stratholme();
 
     AddSC_blades_edge_mountains();
     AddSC_boss_doomlordkazzak();

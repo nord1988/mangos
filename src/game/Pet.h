@@ -19,6 +19,7 @@
 #ifndef MANGOSSERVER_PET_H
 #define MANGOSSERVER_PET_H
 
+#include "Common.h"
 #include "ObjectGuid.h"
 #include "Creature.h"
 #include "Unit.h"
@@ -132,6 +133,7 @@ typedef std::vector<uint32> AutoSpellList;
 #define PET_FOLLOW_ANGLE M_PI_F/2
 
 class Player;
+struct PetScalingData;
 
 class Pet : public Creature
 {
@@ -168,7 +170,6 @@ class Pet : public Creature
                 return m_autospells[pos];
         }
 
-        void Regenerate(Powers power);
         void LooseHappiness();
         HappinessState GetHappinessState();
         void GivePetXP(uint32 xp);
@@ -179,9 +180,6 @@ class Pet : public Creature
         uint32 GetCurrentFoodBenefitLevel(uint32 itemlevel);
         void SetDuration(int32 dur) { m_duration = dur; }
 
-        int32 GetBonusDamage() { return m_bonusdamage; }
-        void SetBonusDamage(int32 damage) { m_bonusdamage = damage; }
-
         bool UpdateStats(Stats stat);
         bool UpdateAllStats();
         void UpdateResistances(uint32 school);
@@ -190,6 +188,7 @@ class Pet : public Creature
         void UpdateMaxPower(Powers power);
         void UpdateAttackPowerAndDamage(bool ranged = false);
         void UpdateDamagePhysical(WeaponAttackType attType);
+        void UpdateSpellPower();
 
         bool CanTakeMoreActiveSpells(uint32 SpellIconID);
         void ToggleAutocast(uint32 spellid, bool apply);
@@ -202,6 +201,16 @@ class Pet : public Creature
         void LearnPetPassives();
         void CastPetAuras(bool current);
         void CastPetAura(PetAura const* aura);
+
+        void CastPetPassiveAuras(bool current);
+        void ApplyStatScalingBonus(Stats stat, bool apply);
+        void ApplyResistanceScalingBonus(uint32 school, bool apply);
+        void ApplyAttackPowerScalingBonus(bool apply);
+        void ApplyDamageScalingBonus(bool apply);
+        void ApplyOtherScalingBonuses(bool apply);
+        void ApplyAllScalingBonuses(bool apply);
+        bool ReapplyScalingAura(SpellAuraHolder* holder, SpellEntry const *spellproto, SpellEffectIndex index, int32 basePoints);
+        PetScalingData* CalculateScalingData( bool recalculate = false );
 
         void _LoadSpellCooldowns();
         void _SaveSpellCooldowns();
@@ -244,8 +253,13 @@ class Pet : public Creature
         float GetPetFollowAngle() const { return m_petFollowAngle; }
         void SetPetFollowAngle(float angle) { m_petFollowAngle = angle; }
 
+        Unit* GetOwner() const;
         bool GetNeedSave() const { return m_needSave; }
         void SetNeedSave(bool needSave) { m_needSave = needSave; }
+        uint8 GetPetCounter() { return m_petCounter; }
+        void SetPetCounter(uint8 counter) { m_petCounter = counter; }
+        bool SetSummonPosition(float x = 0.0f, float y = 0.0f, float z = 0.0f);
+        bool Summon(int32 duration = 0, uint8 counter = 0);
 
         // overwrite Creature function for name localization back to WorldObject version without localization
         const char* GetNameForLocaleIdx(int32 locale_idx) const { return WorldObject::GetNameForLocaleIdx(locale_idx); }
@@ -257,11 +271,18 @@ class Pet : public Creature
         uint32  m_happinessTimer;
         PetType m_petType;
         int32   m_duration;                                 // time until unsummon (used mostly for summoned guardians and not used for controlled pets)
-        int32   m_bonusdamage;
         uint64  m_auraUpdateMask;
         bool    m_loading;
-        bool    m_needSave;                                 // is pet needed to be saved in DB (for chained - only originally first in chain)
+        bool    m_needSave;                                 // is pet needed to be saved in DB
         float   m_petFollowAngle;                           // follow angle for the pet
+        uint8   m_petCounter;
+        int16   m_baseStatBonus[MAX_STATS];
+        int16   m_baseResistanceBonus[MAX_SPELL_SCHOOL];
+        int16   m_baseAPBonus;
+        int16   m_baseRatingValue[MAX_COMBAT_RATING];
+        uint16  m_baseDamageBonus;
+        uint16  m_basePowerRegen;
+        PetScalingData*  m_PetScalingData;
 
         DeclinedName *m_declinedname;
 
@@ -270,11 +291,11 @@ class Pet : public Creature
 
         void SaveToDB(uint32, uint8)                        // overwrited of Creature::SaveToDB     - don't must be called
         {
-            ASSERT(false);
+            MANGOS_ASSERT(false);
         }
         void DeleteFromDB()                                 // overwrited of Creature::DeleteFromDB - don't must be called
         {
-            ASSERT(false);
+            MANGOS_ASSERT(false);
         }
 };
 #endif

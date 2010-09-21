@@ -142,7 +142,7 @@ struct CreatureInfo
         else if(type_flags & CREATURE_TYPEFLAGS_MININGLOOT)
             return SKILL_MINING;
         else if(type_flags & CREATURE_TYPEFLAGS_ENGINEERLOOT)
-            return SKILL_ENGINERING;
+            return SKILL_ENGINEERING;
         else
             return SKILL_SKINNING;                          // normal case
     }
@@ -378,7 +378,6 @@ enum CreatureSubtype
     CREATURE_SUBTYPE_GENERIC,                               // new Creature
     CREATURE_SUBTYPE_PET,                                   // new Pet
     CREATURE_SUBTYPE_TOTEM,                                 // new Totem
-    CREATURE_SUBTYPE_VEHICLE,                               // new Vehicle
     CREATURE_SUBTYPE_TEMPORARY_SUMMON,                      // new TemporarySummon
 };
 
@@ -408,7 +407,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
 
         CreatureSubtype GetSubtype() const { return m_subtype; }
         bool isPet() const { return m_subtype == CREATURE_SUBTYPE_PET; }
-        bool isVehicle() const { return m_subtype == CREATURE_SUBTYPE_VEHICLE; }
         bool isTotem() const { return m_subtype == CREATURE_SUBTYPE_TOTEM; }
         bool isTemporarySummon() const { return m_subtype == CREATURE_SUBTYPE_TEMPORARY_SUMMON; }
 
@@ -632,7 +630,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         void SendAreaSpiritHealerQueryOpcode(Player *pl);
 
     protected:
-        bool CreateFromProto(uint32 guidlow,uint32 Entry,uint32 team, const CreatureData *data = NULL);
+        bool CreateFromProto(ObjectGuid guid, uint32 Entry, uint32 team, const CreatureData *data = NULL);
         bool InitEntry(uint32 entry, uint32 team=ALLIANCE, const CreatureData* data=NULL);
         void RelocationNotify();
 
@@ -647,14 +645,14 @@ class MANGOS_DLL_SPEC Creature : public Unit
         uint32 m_lootMoney;
 
         /// Timers
-        uint32 m_deathTimer;                                // (msecs)timer for death or corpse disappearance
+        uint32 m_corpseDecayTimer;                          // (msecs)timer for death or corpse disappearance
         time_t m_respawnTime;                               // (secs) time of next respawn
         uint32 m_respawnDelay;                              // (secs) delay between corpse disappearance and respawning
         uint32 m_corpseDelay;                               // (secs) delay between death and corpse disappearance
         float m_respawnradius;
 
         CreatureSubtype m_subtype;                          // set in Creatures subclasses for fast it detect without dynamic_cast use
-        void RegenerateMana();
+        void Regenerate(Powers power);
         void RegenerateHealth();
         MovementGeneratorType m_defaultMovementType;
         Cell m_currentCell;                                 // store current cell where creature listed

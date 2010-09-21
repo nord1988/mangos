@@ -19,6 +19,7 @@
 #ifndef __SPELL_H
 #define __SPELL_H
 
+#include "Common.h"
 #include "GridDefines.h"
 #include "SharedDefines.h"
 #include "DBCEnums.h"
@@ -304,6 +305,7 @@ class Spell
         void EffectCharge(SpellEffectIndex eff_idx);
         void EffectCharge2(SpellEffectIndex eff_idx);
         void EffectProspecting(SpellEffectIndex eff_idx);
+        void EffectRedirectThreat(SpellEffectIndex eff_idx);
         void EffectMilling(SpellEffectIndex eff_idx);
         void EffectRenamePet(SpellEffectIndex eff_idx);
         void EffectSendTaxi(SpellEffectIndex eff_idx);
@@ -338,7 +340,6 @@ class Spell
         void EffectTitanGrip(SpellEffectIndex eff_idx);
         void EffectEnchantItemPrismatic(SpellEffectIndex eff_idx);
         void EffectPlayMusic(SpellEffectIndex eff_idx);
-        void EffectRedirectThreat(SpellEffectIndex eff_idx);
         void EffectSpecCount(SpellEffectIndex eff_idx);
         void EffectActivateSpec(SpellEffectIndex eff_idx);
 
@@ -380,7 +381,7 @@ class Spell
         void setState(uint32 state) { m_spellState = state; }
 
         void DoCreateItem(SpellEffectIndex eff_idx, uint32 itemtype);
-        void DoSummon(SpellEffectIndex eff_idx);
+        void DoSummonGroupPets(SpellEffectIndex eff_idx);
         void DoSummonWild(SpellEffectIndex eff_idx, uint32 forceFaction = 0);
         void DoSummonGuardian(SpellEffectIndex eff_idx, uint32 forceFaction = 0);
         void DoSummonTotem(SpellEffectIndex eff_idx, uint8 slot_dbc = 0);
@@ -695,7 +696,7 @@ namespace MaNGOS
 
         template<class T> inline void Visit(GridRefManager<T>  &m)
         {
-            ASSERT(i_data);
+            MANGOS_ASSERT(i_data);
 
             if(!i_originalCaster)
                 return;

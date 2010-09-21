@@ -19,6 +19,7 @@
 #ifndef MANGOSSERVER_VEHICLE_H
 #define MANGOSSERVER_VEHICLE_H
 
+#include "Common.h"
 #include "ObjectGuid.h"
 #include "Creature.h"
 #include "Unit.h"
@@ -61,36 +62,4 @@ private:
     Unit* m_pBase;
 };
 
-class Vehicle : public Creature
-{
-    public:
-        explicit Vehicle();
-        virtual ~Vehicle();
-
-        void AddToWorld();
-        void RemoveFromWorld();
-
-        bool Create (uint32 guidlow, Map *map, uint32 Entry, uint32 vehicleId, uint32 team);
-
-        void setDeathState(DeathState s);                   // overwrite virtual Creature::setDeathState and Unit::setDeathState
-        void Update(uint32 diff);                           // overwrite virtual Creature::Update and Unit::Update
-
-        uint32 GetVehicleId() { return m_vehicleId; }
-        void SetVehicleId(uint32 vehicleid) { m_vehicleId = vehicleid; }
-
-        void Dismiss();
-
-    protected:
-        uint32 m_vehicleId;
-
-    private:
-        void SaveToDB(uint32, uint8)                        // overwrited of Creature::SaveToDB     - don't must be called
-        {
-            ASSERT(false);
-        }
-        void DeleteFromDB()                                 // overwrited of Creature::DeleteFromDB - don't must be called
-        {
-            ASSERT(false);
-        }
-};
 #endif
